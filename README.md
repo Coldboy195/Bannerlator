@@ -32,7 +32,7 @@ Bannerlator carries the Winlator *Star Bionic* line forward with a modern **Jetp
 
 ## 📌 Project Notice
 
-> **Bannerlator is a personal continuation of the Winlator *Star Bionic* project, which was recently discontinued and archived.**
+> **Bannerlator is a personal continuation of the Winlator *Star Bionic* project ([star-emu/star](https://github.com/star-emu/star)), which was recently discontinued and archived.**
 >
 > **None of the original developers are involved except me ([The412Banner](https://github.com/The412Banner)).** This project would not be possible without their hard work up to this point, together with cherry-picked commits from other open-source projects across the community — all credited below.
 >
