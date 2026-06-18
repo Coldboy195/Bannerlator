@@ -1,5 +1,5 @@
 <p align="center">
-<img src="logo.png" width="1500" height="500" alt="bannerlators" />
+<img src="logo.jpg" width="1245" height="602" alt="bannerlators" />
 </p>
 
 <p align="center">
