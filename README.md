@@ -27,9 +27,9 @@ Sadly bannerlators doesnt work by itself on frontends, but you can check [this](
 
 # Links
 
-- [Discord server](https://discord.gg/Q74CNHJnq2)
+- [Discord server](https://discord.gg/n8S4G2WZQ4)
     
-- [Telegram](https://t.me/staremul)
+- [Telegram](https://t.me/The412BannerGaming)
 
 ---
 
