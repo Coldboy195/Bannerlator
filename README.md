@@ -58,7 +58,7 @@ This project is built via **GitHub Actions only** — local builds are not suppo
 
 ## 🙏 Credits
 
-This build stands on a long chain of prior work. Credit, in lineage order:
+This build stands on a long chain of prior work — its direct lineage, plus the projects whose commits and work are cherry-picked and implemented here:
 
 | Contributor | Contribution |
 |---|---|
@@ -67,11 +67,9 @@ This build stands on a long chain of prior work. Credit, in lineage order:
 | **Pipetto-crypto** | [Winlator Bionic fork](https://github.com/Pipetto-crypto/winlator) (the "Bionic" half of *Star Bionic*) and the upstream [Box64 fix branch](https://github.com/Pipetto-crypto/box64). Co-credited on cmod. |
 | **jacojayy** | Maintainer of the [Star](https://github.com/jacojayy/star) line. Timeline Semaphore patches in the bundled Turnip driver for newer DXVK compatibility. Official site developer and maintainer. |
 | **vivsi** | Controller support contributions. |
+| **StevenMXZ** | [Winlator-Ludashi](https://github.com/StevenMXZ/Winlator-Ludashi) — cherry-picked commits and work implemented in this build, including the `ludashi` package rename (Xiaomi performance-mode detection) and the `redmagic` (Genshin Impact package name for RedMagic frame-gen) variant handling. |
+| **GameNative** | [GameNative](https://github.com/utkarshdalal/GameNative) by **utkarshdalal** — Proton bionic translation layers and cherry-picked commits adapted into this build. |
 | **The412Banner** | Full Jetpack Compose UI migration, in-game overlay rewrite, controller-support restore (SDL2 SoName fix + four event files), Box64 edit-dialog fix, theme system, and CI/release infrastructure. Also maintains the [Nightlies WCP Hub](https://github.com/The412Banner/Nightlies) and [Banners-Turnip](https://github.com/The412Banner/Banners-Turnip). |
-
-### Sibling forks
-
-- **StevenMXZ** — [Winlator-Ludashi](https://github.com/StevenMXZ/Winlator-Ludashi): Bionic-based fork with `dev-vanilla`, `ludashi` (renamed package for Xiaomi performance-mode detection), and `redmagic` (Genshin Impact package name for RedMagic frame-gen) build variants.
 
 ### Upstream stack
 
