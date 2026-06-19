@@ -150,28 +150,16 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(horizontal = 48.dp),
         ) {
-            Box(
-                modifier = Modifier.size(120.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                SparkleCanvas(time = frameTime, modifier = Modifier.fillMaxSize())
-                Image(
-                    painter = painterResource(R.mipmap.ic_launcher_foreground),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(80.dp)
-                        .scale(logoScale),
-                )
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            Text(
-                text = "Star Marcescence",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
+            Image(
+                painter = painterResource(R.drawable.splash_logo),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .scale(logoScale),
             )
+
+            Spacer(Modifier.height(12.dp))
+
             Text(
                 text = "v1.4-marcescence",
                 fontSize = 14.sp,
