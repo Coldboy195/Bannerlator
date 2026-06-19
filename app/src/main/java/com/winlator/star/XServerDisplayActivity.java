@@ -354,8 +354,15 @@ public class XServerDisplayActivity extends AppCompatActivity {
         state.onGraphicEngine          = () -> { XServerDrawerState.INSTANCE.selectTab(com.winlator.star.ui.TabType.GRAPHICS); runOnUiThread(() -> drawerLayout.openDrawer(GravityCompat.START)); };
         state.onVibration              = () -> showVibrationDialog();
         state.onNativeRenderingToggle   = () -> {
-            boolean current = XServerDrawerState.INSTANCE.getNativeRenderingEnabled();
-            XServerDrawerState.INSTANCE.setNativeRenderingEnabled(!current);
+            boolean next = !XServerDrawerState.INSTANCE.getNativeRenderingEnabled();
+            XServerDrawerState.INSTANCE.setNativeRenderingEnabled(next);
+            // Actually drive the renderer (this was previously only flipping the UI flag, so the
+            // toggle had no effect and no "Native Rendering+ Enabled" toast). Native (direct
+            // scanout) only exists on the Vulkan renderer.
+            HostRenderer r = xServerView.getRenderer();
+            if (r instanceof com.winlator.star.renderer.vulkan.VulkanRenderer) {
+                ((com.winlator.star.renderer.vulkan.VulkanRenderer) r).setNativeMode(next);
+            }
         };
         state.onToggleFullscreen       = () -> {
             xServerView.getRenderer().toggleFullscreen();
@@ -1330,7 +1337,17 @@ public class XServerDisplayActivity extends AppCompatActivity {
             vkRenderer.setFilterMode("1".equals(vkCfg.get("filterMode", "0")) ? 1 : 0);
             vkRenderer.setSwapRB(vkCfg.getBoolean("swapRB", false));
             // Must run before the surface is created so onSurfaceCreated sets up the scanout path.
-            vkRenderer.setInitialNativeMode(vkCfg.getBoolean("native", false));
+            boolean nativeOn = vkCfg.getBoolean("native", false);
+            vkRenderer.setInitialNativeMode(nativeOn);
+            XServerDrawerState.INSTANCE.setNativeRenderingEnabled(nativeOn); // keep the toggle in sync
+            // Tick the perf HUD per present (the Vulkan AHB path bypasses copyArea, which normally
+            // drives it). Gate on the FPS window so we only count game frames.
+            vkRenderer.setHudFrameTick(wid -> {
+                if (wid == frameRatingWindowId) {
+                    if (frameRating != null) frameRating.update();
+                    if (frameRatingHorizontal != null) frameRatingHorizontal.update();
+                }
+            });
         }
 
         if (shortcut != null) {

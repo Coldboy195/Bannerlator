@@ -419,6 +419,7 @@ public class VulkanRenderer implements WindowManager.OnWindowModificationListene
     }
 
     public void onUpdateWindowContentDirect(Window window, Drawable pixmap, short xOff, short yOff) {
+    if (hudFrameTick != null) hudFrameTick.accept(window.id);
     if (!nativeMode && window.id == fpsWindowId) {
         if (classicHudRef != null && classicHudRef.isAttachedToWindow()) classicHudRef.post(classicHudRef);
     }
@@ -702,6 +703,13 @@ public class VulkanRenderer implements WindowManager.OnWindowModificationListene
     private int fpsWindowId = -1;
 
     public void setFpsWindowId(int id) { fpsWindowId = id; }
+
+    // The FPS/perf HUD is normally ticked from copyArea's onDrawListener, but the Vulkan AHB
+    // present path bypasses copyArea, so the HUD froze (no values) on the Vulkan renderer. The
+    // activity sets this to tick the HUD per present; it passes window.id so the activity can gate
+    // on its FPS window. Decoupled from classicHudRef so it works for both HUD variants.
+    private java.util.function.IntConsumer hudFrameTick = null;
+    public void setHudFrameTick(java.util.function.IntConsumer c) { hudFrameTick = c; }
 
     public void setFrameRating(Object fr) {
         if (fr instanceof FrameRating) classicHudRef = (FrameRating) fr;
