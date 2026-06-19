@@ -12,9 +12,9 @@ on:
         required: true
         default: '1.0'
       release_title:
-        description: 'Release title (e.g. Star 1.7)'
+        description: 'Release title (e.g. Bannerlator 1.0)'
         required: true
-        default: 'Star Nightly'
+        default: 'Bannerlator 1.0'
       release_number:
         description: 'Release number for APK name (e.g. 1.7)'
         required: true
@@ -156,11 +156,11 @@ jobs:
       run: |
         N="${{ github.event.inputs.release_number }}"
         mv app/build/outputs/apk/standard/debug/app-standard-debug.apk \
-           app/build/outputs/apk/standard/debug/star-nightly-${N}-standard.apk
+           app/build/outputs/apk/standard/debug/Bannerlator-${N}-standard.apk
         mv app/build/outputs/apk/ludashi/debug/app-ludashi-debug.apk \
-           app/build/outputs/apk/ludashi/debug/star-nightly-${N}-ludashi.apk
+           app/build/outputs/apk/ludashi/debug/Bannerlator-${N}-ludashi.apk
         mv app/build/outputs/apk/pubg/debug/app-pubg-debug.apk \
-           app/build/outputs/apk/pubg/debug/star-nightly-${N}-pubg.apk
+           app/build/outputs/apk/pubg/debug/Bannerlator-${N}-pubg.apk
 
     - name: Generate changelog table
       run: |
@@ -185,14 +185,15 @@ jobs:
         tag_name: ${{ github.event.inputs.release_tag }}
         name: ${{ github.event.inputs.release_title }}
         body: |
-          <img src="https://github.com/jacojayy/star/blob/main/20260418_134945.png" width="1500" height="500" alt="star" />
+          <img src="https://github.com/The412Banner/Bannerlator/blob/main/logo.jpg" width="1500" height="500" alt="Bannerlator" />
           </p>
 
           ${{ env.CHANGELOG }}
 
           ${{ github.event.inputs.release_notes }}
         files: |
-          app/build/outputs/apk/standard/debug/star-nightly-${{ github.event.inputs.release_number }}-standard.apk
-          app/build/outputs/apk/ludashi/debug/star-nightly-${{ github.event.inputs.release_number }}-ludashi.apk
-          app/build/outputs/apk/pubg/debug/star-nightly-${{ github.event.inputs.release_number }}-pubg.apk
-        prerelease: true
+          app/build/outputs/apk/standard/debug/Bannerlator-${{ github.event.inputs.release_number }}-standard.apk
+          app/build/outputs/apk/ludashi/debug/Bannerlator-${{ github.event.inputs.release_number }}-ludashi.apk
+          app/build/outputs/apk/pubg/debug/Bannerlator-${{ github.event.inputs.release_number }}-pubg.apk
+        prerelease: false
+        make_latest: true
