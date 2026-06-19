@@ -235,7 +235,10 @@ fun ContainerDetailScreen(
     }
     if (showBox64DownloadSheet) {
         ContentDownloadSheet(
-            contentType = com.winlator.star.contents.ContentProfile.ContentType.CONTENT_TYPE_BOX64,
+            contentType = if (viewModel.isArm64EC)
+                com.winlator.star.contents.ContentProfile.ContentType.CONTENT_TYPE_WOWBOX64
+            else
+                com.winlator.star.contents.ContentProfile.ContentType.CONTENT_TYPE_BOX64,
             onDismiss = { showBox64DownloadSheet = false },
             onContentChanged = { viewModel.refreshBox64Versions() }
         )
@@ -815,11 +818,12 @@ private fun AdvancedTab(
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
-        // Box64 section
-        SectionBox(title = "Box64") {
+        // Box64 / WOWBox64 section — arm64ec wrappers use WOWBox64, everything else Box64.
+        val emulatorLabel = if (viewModel.isArm64EC) "WOWBox64" else "Box64"
+        SectionBox(title = emulatorLabel) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 LabeledDropdown(
-                    label = stringResource(R.string.box64_version),
+                    label = "$emulatorLabel Version",
                     options = viewModel.box64VersionEntries,
                     selectedOption = viewModel.selectedBox64Version,
                     onSelect = { viewModel.selectedBox64Version = it },
@@ -832,7 +836,7 @@ private fun AdvancedTab(
             }
             Spacer(Modifier.height(8.dp))
             LabeledDropdown(
-                label = stringResource(R.string.box64_preset),
+                label = "$emulatorLabel Preset",
                 options = viewModel.box64PresetEntries,
                 selectedOption = viewModel.box64PresetEntries.getOrElse(viewModel.selectedBox64PresetIndex) { "" },
                 onSelect = { opt -> viewModel.selectedBox64PresetIndex = viewModel.box64PresetEntries.indexOf(opt).coerceAtLeast(0) }
@@ -1676,7 +1680,7 @@ internal fun FpsCounterConfigDialog(
 // Inline install helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-private fun installContentFromUri(activity: Activity, uri: Uri, onSuccess: () -> Unit) {
+private fun installContentFromUri(activity: Activity, uri: Uri, onResult: (Boolean) -> Unit) {
     val cm = ContentsManager(activity)
     Executors.newSingleThreadExecutor().execute {
         try {
@@ -1685,6 +1689,7 @@ private fun installContentFromUri(activity: Activity, uri: Uri, onSuccess: () ->
                 override fun onFailed(reason: ContentsManager.InstallFailedReason, e: Exception?) {
                     activity.runOnUiThread {
                         Toast.makeText(activity, "Install failed: $reason", Toast.LENGTH_LONG).show()
+                        onResult(false)
                     }
                 }
                 override fun onSucceed(profile: ContentProfile) {
@@ -1694,11 +1699,12 @@ private fun installContentFromUri(activity: Activity, uri: Uri, onSuccess: () ->
                             cm.finishInstallContent(profile, this)
                         } else {
                             cm.syncContents()
-                            activity.runOnUiThread { onSuccess() }
+                            activity.runOnUiThread { onResult(true) }
                         }
                     } catch (e: Exception) {
                         activity.runOnUiThread {
                             Toast.makeText(activity, "Install error: ${e.message}", Toast.LENGTH_LONG).show()
+                            onResult(false)
                         }
                     }
                 }
@@ -1706,6 +1712,7 @@ private fun installContentFromUri(activity: Activity, uri: Uri, onSuccess: () ->
         } catch (e: Exception) {
             activity.runOnUiThread {
                 Toast.makeText(activity, "Install error: ${e.message}", Toast.LENGTH_LONG).show()
+                onResult(false)
             }
         }
     }
@@ -1725,9 +1732,9 @@ private fun ContentInstallGear(
             val act = context.findActivity()
             if (act != null) {
                 installing = true
-                installContentFromUri(act, uri) {
+                installContentFromUri(act, uri) { ok ->
                     installing = false
-                    onContentInstalled()
+                    if (ok) onContentInstalled()
                 }
             }
         }
