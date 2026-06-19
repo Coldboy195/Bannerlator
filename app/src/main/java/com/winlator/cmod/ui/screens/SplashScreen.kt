@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,22 +46,15 @@ fun SplashScreen(
             modifier = Modifier.padding(horizontal = 48.dp),
         ) {
             Image(
-                painter = painterResource(R.mipmap.ic_launcher_foreground),
-                contentDescription = null,
-                modifier = Modifier.size(80.dp),
+                painter = painterResource(R.drawable.splash_logo),
+                contentDescription = "Bannerlator",
+                modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
-                text = "Bionic Star",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-            )
-
-            Text(
-                text = "V1.2",
+                text = "v1.0",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFFAAAAAA),
