@@ -1453,6 +1453,10 @@ public class XServerDisplayActivity extends AppCompatActivity {
     }
 
     private void initInlineTabStates(HostRenderer renderer) {
+        // SGSR/HDR/screen-effect shaders are GL EffectComposer features; the Vulkan renderer has no
+        // post-process pipeline, so their callbacks below are never set. Flag it so the drawer grays
+        // those toggles out instead of showing dead switches.
+        XServerDialogState.INSTANCE.setEffectsSupported(renderer instanceof GLRenderer);
         if (!(renderer instanceof GLRenderer)) return;
         GLRenderer glRenderer = (GLRenderer) renderer;
         XServerDialogState ds = XServerDialogState.INSTANCE;

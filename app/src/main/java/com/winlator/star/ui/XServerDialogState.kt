@@ -47,6 +47,12 @@ object XServerDialogState {
     private val _hdrEnabled    = MutableStateFlow(false)
     val hdrEnabled: StateFlow<Boolean> = _hdrEnabled
 
+    // SGSR/HDR are GL EffectComposer features; the Vulkan renderer has no post-process
+    // pipeline, so they do nothing there. Drives the grayed-out state in the drawer.
+    private val _effectsSupported = MutableStateFlow(true)
+    val effectsSupported: StateFlow<Boolean> = _effectsSupported
+    fun setEffectsSupported(v: Boolean) { _effectsSupported.value = v }
+
     fun setSgsrEnabled(v: Boolean)    { _sgsrEnabled.value = v }
     fun setSgsrSharpness(v: Int)      { _sgsrSharpness.value = v }
     fun setHdrEnabled(v: Boolean)     { _hdrEnabled.value = v }

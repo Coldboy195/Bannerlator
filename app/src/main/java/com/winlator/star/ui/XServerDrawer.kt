@@ -54,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -286,14 +287,14 @@ private fun SectionHeader(title: String) {
 // ───── Modern Toggle Row ─────
 
 @Composable
-private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun ToggleRow(label: String, checked: Boolean, enabled: Boolean = true, onCheckedChange: (Boolean) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(DarkSurface)
-            .clickable { onCheckedChange(!checked) }
+            .then(if (enabled) Modifier.clickable { onCheckedChange(!checked) } else Modifier.alpha(0.4f))
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Text(
@@ -305,6 +306,7 @@ private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = GlowPurple,
                 checkedTrackColor = PrimaryDim,
@@ -416,18 +418,29 @@ private fun GraphicsContent(state: XServerDrawerState) {
     val initSgsrEnabled   by XServerDialogState.sgsrEnabled.collectAsState()
     val initSgsrSharpness by XServerDialogState.sgsrSharpness.collectAsState()
     val initHdrEnabled    by XServerDialogState.hdrEnabled.collectAsState()
+    // SGSR/HDR are GL-only (no Vulkan post-process pipeline) -> gray them out on the Vulkan renderer.
+    val effectsSupported  by XServerDialogState.effectsSupported.collectAsState()
     var sgsrEnabled   by remember(initSgsrEnabled)   { mutableStateOf(initSgsrEnabled) }
     var sgsrSharpness by remember(initSgsrSharpness)  { mutableIntStateOf(initSgsrSharpness) }
     var hdrEnabled    by remember(initHdrEnabled)     { mutableStateOf(initHdrEnabled) }
 
-    ToggleRow("SGSR", sgsrEnabled) { sgsrEnabled = it; pushSgsrUpdate(sgsrEnabled, sgsrSharpness, hdrEnabled) }
+    ToggleRow("SGSR", sgsrEnabled, effectsSupported) { sgsrEnabled = it; pushSgsrUpdate(sgsrEnabled, sgsrSharpness, hdrEnabled) }
 
-    if (sgsrEnabled) {
+    if (sgsrEnabled && effectsSupported) {
         Spacer(Modifier.height(4.dp))
         IntSlider("Sharpness", sgsrSharpness, 0..100, { sgsrSharpness = it }, { pushSgsrUpdate(sgsrEnabled, sgsrSharpness, hdrEnabled) })
     }
 
-    ToggleRow("HDR", hdrEnabled) { hdrEnabled = it; pushSgsrUpdate(sgsrEnabled, sgsrSharpness, hdrEnabled) }
+    ToggleRow("HDR", hdrEnabled, effectsSupported) { hdrEnabled = it; pushSgsrUpdate(sgsrEnabled, sgsrSharpness, hdrEnabled) }
+
+    if (!effectsSupported) {
+        Text(
+            "SGSR / HDR require the OpenGL renderer",
+            color = DimWhite.copy(alpha = 0.5f),
+            fontSize = 11.sp,
+            modifier = Modifier.padding(start = 12.dp, top = 2.dp)
+        )
+    }
 
     HorizontalDivider(color = Color(0xFF1A1A1A), modifier = Modifier.padding(vertical = 6.dp))
 
