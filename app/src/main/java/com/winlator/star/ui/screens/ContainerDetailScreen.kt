@@ -82,6 +82,8 @@ fun ContainerDetailScreen(
     var showVegasDownloadSheet   by remember { mutableStateOf(false) }
     var showVkd3dDownloadSheet   by remember { mutableStateOf(false) }
     var showVulkanConfig          by remember { mutableStateOf(false) }
+    // Bumped after a DXVK/VKD3D/Vegas download so the open DxvkConfigDialog re-reads its version lists.
+    var dxvkRefreshKey           by remember { mutableStateOf(0) }
 
     // AndroidView references for custom views
     val envVarsViewRef      = remember { mutableStateOf<EnvVarsView?>(null)      }
@@ -192,6 +194,7 @@ fun ContainerDetailScreen(
         DxvkConfigDialog(
             isArm64EC = viewModel.isArm64EC,
             isVegas = isVegasWrapper,
+            refreshKey = dxvkRefreshKey,
             initialConfig = viewModel.dxWrapperConfig,
             onConfirm = { newConfig -> viewModel.dxWrapperConfig = newConfig; showDxvkConfig = false },
             onDismiss = { showDxvkConfig = false },
@@ -254,20 +257,20 @@ fun ContainerDetailScreen(
         ContentDownloadSheet(
             contentType = com.winlator.star.contents.ContentProfile.ContentType.CONTENT_TYPE_DXVK,
             onDismiss = { showDxvkDownloadSheet = false },
-            onContentChanged = {}
+            onContentChanged = { dxvkRefreshKey++ }
         )
     }
     if (showVkd3dDownloadSheet) {
         ContentDownloadSheet(
             contentType = com.winlator.star.contents.ContentProfile.ContentType.CONTENT_TYPE_VKD3D,
             onDismiss = { showVkd3dDownloadSheet = false },
-            onContentChanged = {}
+            onContentChanged = { dxvkRefreshKey++ }
         )
     }
     if (showVegasDownloadSheet) {
         VegasDownloadSheet(
             onDismiss = { showVegasDownloadSheet = false },
-            onContentChanged = {}
+            onContentChanged = { dxvkRefreshKey++ }
         )
     }
 }
@@ -1381,6 +1384,7 @@ internal fun ExtensionPickerDialog(
 internal fun DxvkConfigDialog(
     isArm64EC: Boolean,
     isVegas: Boolean = false,
+    refreshKey: Int = 0,
     initialConfig: String,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -1395,7 +1399,7 @@ internal fun DxvkConfigDialog(
     val vkd3dVersions   = remember { mutableStateOf(listOf<String>()) }
     val configSourceEntries = remember { mutableStateOf(listOf<String>()) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshKey) {
         withContext(Dispatchers.IO) {
             val cm = ContentsManager(context)
             cm.syncContents()
