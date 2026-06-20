@@ -12,6 +12,13 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/The412Banner/Bannerlator/releases/latest">
+    <img src="https://img.shields.io/badge/⬇%20Download-Latest%20Release-ff2d9b?style=for-the-badge&logo=android&logoColor=white" alt="Download Latest Release">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/The412Banner/Bannerlator/releases/latest">Download</a> •
   <a href="https://discord.gg/n8S4G2WZQ4">Discord</a> •
   <a href="https://t.me/The412BannerGaming">Telegram</a> •
   <a href="#building">Builds</a> •
