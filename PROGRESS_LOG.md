@@ -214,6 +214,20 @@ README credit; then the Phase 2 verification spike (gate the rest on it).
 - Standard pkg confirmed `com.winlator.banner` (pubg `com.tencent.ig`); both installed.
 - **Next (user):** run the spike launch per the runbook; report the log signals.
 
+### Phase 2 spike ARMED on device (2026-06-19) — awaiting user launch
+- Test workload = **DOOMBLADE** (user's choice; real DX11/DXVK game) in **container 2 "P10arm"**
+  (`imagefs/home/xuser-2`, the ACTIVE container; arm64ec, DXVK 2.4.1+vkd3d, Turnip, FPS HUD on).
+- Staged via root bridge: `libbionic_fg.so` → `imagefs/usr/lib/`, `VkLayer_BIONIC_framegen.json` →
+  `imagefs/usr/share/vulkan/implicit_layer.d/`, `conf.toml` (multiplier=2) →
+  `imagefs/home/xuser-2/.config/bionic-fg/`. All chown'd back to app uid `u0_a478`.
+- Container 2 `.container` env vars **prepended** `BIONIC_FG_ENABLE=1 VK_LOADER_DEBUG=all`
+  (backup at `.container.bak_bfg`).
+- Logcat capture → `/sdcard/Download/bionicfg_spike.txt`.
+- **REVERT if needed:** restore `imagefs/home/xuser-2/.container.bak_bfg`; rm the staged
+  `.so`/manifest/`.config/bionic-fg`.
+- ⚠️ Expectation: bionic `.so` likely fails to load in glibc guest loader (ABI) → then Phase 1.5
+  glibc build. Spike confirms.
+
 ---
 
 ## How to Resume a Session
