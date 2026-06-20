@@ -537,6 +537,28 @@ private fun TopLevelFields(
             Text(stringResource(R.string.fullscreen_stretched))
         }
 
+        // Frame Generation (bionic-fg)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = viewModel.frameGenEnabled,
+                onCheckedChange = { viewModel.frameGenEnabled = it }
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.frame_generation), modifier = Modifier.weight(1f))
+        }
+        if (viewModel.frameGenEnabled) {
+            LabeledDropdown(
+                label = stringResource(R.string.frame_generation_multiplier),
+                options = viewModel.frameGenMultiplierOptions.map { "${it}x" },
+                selectedOption = "${viewModel.frameGenMultiplier}x",
+                onSelect = { opt ->
+                    viewModel.frameGenMultiplier =
+                        opt.removeSuffix("x").toIntOrNull() ?: Container.FRAMEGEN_DEFAULT_MULTIPLIER
+                }
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         // LC_ALL
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(

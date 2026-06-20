@@ -90,6 +90,11 @@ class ContainerDetailViewModel(app: Application) : AndroidViewModel(app) {
     var fpsCounterConfig by mutableStateOf(Container.DEFAULT_FPS_COUNTER_CONFIG)
     var fullscreenStretched by mutableStateOf(false)
 
+    // bionic-fg frame generation (per-container)
+    var frameGenEnabled by mutableStateOf(false)
+    var frameGenMultiplier by mutableStateOf(Container.FRAMEGEN_DEFAULT_MULTIPLIER)
+    val frameGenMultiplierOptions = listOf(2, 3, 4)
+
     // ── Renderer ──────────────────────────────────────────────────────────────
     var rendererEntries by mutableStateOf(emptyList<String>()); private set
     var selectedRenderer by mutableStateOf("opengl")
@@ -285,6 +290,9 @@ class ContainerDetailViewModel(app: Application) : AndroidViewModel(app) {
         showFPS           = c?.isShowFPS == true
         fpsCounterConfig  = c?.getFPSCounterConfig() ?: Container.DEFAULT_FPS_COUNTER_CONFIG
         fullscreenStretched = c?.isFullscreenStretched == true
+
+        frameGenEnabled    = c?.isFrameGenEnabled == true
+        frameGenMultiplier = c?.frameGenMultiplier ?: Container.FRAMEGEN_DEFAULT_MULTIPLIER
 
         // Renderer
         selectedRenderer = c?.renderer ?: "opengl"
@@ -545,6 +553,8 @@ class ContainerDetailViewModel(app: Application) : AndroidViewModel(app) {
             c.setShowFPS(showFPS)
             c.setFPSCounterConfig(fpsConfig)
             c.setFullscreenStretched(fullscreenStretched)
+            c.setFrameGenEnabled(frameGenEnabled)
+            c.setFrameGenMultiplier(frameGenMultiplier)
             c.setExclusiveXInput(exclusiveXInput)
             c.setRenderer(StringUtils.parseIdentifier(selectedRenderer))
             c.setInputType(inputType)
@@ -598,7 +608,12 @@ class ContainerDetailViewModel(app: Application) : AndroidViewModel(app) {
             // createContainerAsync posts callback to main thread when done
             manager.createContainerAsync(data, contentsManager) { created ->
                 container = created
-                if (created != null) saveMouseWarp(created)
+                if (created != null) {
+                    created.setFrameGenEnabled(frameGenEnabled)
+                    created.setFrameGenMultiplier(frameGenMultiplier)
+                    created.saveData()
+                    saveMouseWarp(created)
+                }
                 onComplete()
             }
         }

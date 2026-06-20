@@ -336,6 +336,31 @@ public class Container {
         catch (JSONException e) {}
     }
 
+    // --- bionic-fg frame generation (per-container), stored in extraData ---
+    public static final int FRAMEGEN_DEFAULT_MULTIPLIER = 2;
+
+    public boolean isFrameGenEnabled() {
+        return getExtra("frameGenEnabled", "0").equals("1");
+    }
+
+    public void setFrameGenEnabled(boolean enabled) {
+        putExtra("frameGenEnabled", enabled ? "1" : "0");
+    }
+
+    public int getFrameGenMultiplier() {
+        try {
+            int m = Integer.parseInt(getExtra("frameGenMultiplier", String.valueOf(FRAMEGEN_DEFAULT_MULTIPLIER)));
+            return (m < 2 || m > 4) ? FRAMEGEN_DEFAULT_MULTIPLIER : m;
+        }
+        catch (NumberFormatException e) {
+            return FRAMEGEN_DEFAULT_MULTIPLIER;
+        }
+    }
+
+    public void setFrameGenMultiplier(int multiplier) {
+        putExtra("frameGenMultiplier", String.valueOf(multiplier));
+    }
+
     public String getWineVersion() {
         return wineVersion;
     }

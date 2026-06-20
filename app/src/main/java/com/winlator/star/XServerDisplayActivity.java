@@ -875,6 +875,25 @@ public class XServerDisplayActivity extends AppCompatActivity {
     }
 
 
+    // Writes the bionic-fg layer config (TOML) into the guest HOME so it is present before the
+    // first swapchain present. The layer hot-reloads this file, so it doubles as the live-control
+    // path (see in-game drawer). Keys: multiplier (2-4), flow_scale (0.2-1.0), model (0/1).
+    private void writeBionicFgConfig(int multiplier) {
+        try {
+            File configDir = new File(imageFs.home_path, ".config/bionic-fg");
+            configDir.mkdirs();
+            File confFile = new File(configDir, "conf.toml");
+            String toml = "# Written by Bannerlator (per-container frame generation)\n"
+                    + "multiplier = " + multiplier + "\n"
+                    + "flow_scale = 0.8\n"
+                    + "model = 0\n";
+            FileUtils.writeString(confFile, toml);
+        }
+        catch (Exception e) {
+            Log.e("BionicFG", "Failed to write bionic-fg conf.toml", e);
+        }
+    }
+
     private void savePlaytimeData() {
         long endTime = System.currentTimeMillis();
         long playtime = endTime - startTime;
@@ -1215,6 +1234,12 @@ public class XServerDisplayActivity extends AppCompatActivity {
             guestProgramLauncherComponent.setGuestExecutable(guestExecutable);
 
             envVars.putAll(container.getEnvVars());
+
+            // bionic-fg frame generation: enable the implicit Vulkan layer + write its config (hot-reloadable).
+            if (container.isFrameGenEnabled()) {
+                envVars.put("BIONIC_FG_ENABLE", "1");
+                writeBionicFgConfig(container.getFrameGenMultiplier());
+            }
 
             if (shortcut != null) envVars.putAll(shortcut.getExtra("envVars"));
 
