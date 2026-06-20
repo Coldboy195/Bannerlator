@@ -42,8 +42,8 @@
 | | |
 |---|---|
 | **App label** | `Bannerlator Bionic` (standard) · `Bannerlator Bionic PuBG` (pubg) · `Bannerlator Bionic Ludashi` (ludashi) |
-| **Packages** | `com.winlator.star` (standard) · `com.tencent.ig` (pubg) · `com.ludashi.benchmark` (ludashi) |
-| **Version** | Bannerlator **V 1.2** — built from Star **marcescence** (`versionName 1.4-marcescene`, `versionCode 20`) |
+| **Packages** | `com.winlator.banner` (standard) · `com.tencent.ig` (pubg) · `com.ludashi.benchmark` (ludashi) |
+| **Version** | Bannerlator **V 1.3** — built from Star **marcescence** (`versionName 1.3`, `versionCode 21`) |
 | **Android SDK** | `compileSdk 34` · `targetSdk 28` · `minSdk 26` (Android 8.0+) |
 | **Lineage** | Winlator → cmod → Bionic Nightly → Star Bionic → **marcescence** → **Bannerlator** |
 
@@ -73,6 +73,12 @@ Everything Bannerlator offers, at a glance. No PC and no root required — it ru
 - **Native Rendering+** — low-latency direct-scanout presentation on the Vulkan renderer.
 - **Screen effects** on the OpenGL renderer — FXAA, SGSR, HDR, CRT, Toon, and NTSC.
 - Adjustable resolution and frame-rate limit.
+
+### 🎞️ Frame generation & pacing
+- **AI Frame Generation** powered by the **[bionic-fg](https://github.com/xXJSONDeruloXx/bionic-fg)** Vulkan layer (Lossless-Scaling lineage) — interpolates extra frames for smoother motion.
+- **Per-container toggle** plus **live in-game controls**: switch between **Off / 2× / 3× / 4×** and adjust the **flow-scale** slider right from the in-game Graphics drawer, hot-reloaded with no restart.
+- **FPS Limiter** (10–200) — caps the base/real frame rate so on-screen FPS = limit × multiplier. Feeding the interpolator a steady cadence yields smoother output and lower power draw; it also works on its own (frame gen off) as a plain live FPS cap.
+- Confirmed on **both** the OpenGL and Vulkan host renderers.
 
 ### 📦 Containers
 - Create and manage **multiple isolated Wine containers**.
