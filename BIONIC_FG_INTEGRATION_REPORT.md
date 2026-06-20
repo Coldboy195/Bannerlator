@@ -215,16 +215,38 @@ the frame-gen module from an imagefs path on the side that runs the driver. **Co
       `XServerDrawerState.kt`, mirroring the Native Rendering toggle.
 - [ ] **4.2** Render the toggle + multiplier/model/flow_scale controls in `XServerDrawer.kt`.
 - [ ] **4.3** Wire callbacks in `XServerDisplayActivity.java` to **rewrite the TOML live** (hot-reload).
-- [ ] **4.4** Gray out / hide on the OpenGL renderer if frame-gen is Vulkan-only (match the existing
-      effect-gating pattern).
+- [x] **4.4** ~~Gray out / hide on the OpenGL renderer if frame-gen is Vulkan-only~~ — **N/A: FG
+      confirmed working on the OpenGL host renderer too (2026-06-20), no gating needed.**
 
 ### Phase 5 — Polish, release, give back
-- [ ] **5.1** Device-confirm both surfaces on a real game.
+- [x] **5.1** Device-confirm both surfaces on a real game — **DONE (DOOMBLADE, both host renderers).**
 - [ ] **5.2** Ask author to add an explicit **license** before bundling in a tagged release.
 - [ ] **5.3** Send **feedback / PRs** upstream (the wrapper-ICD / AHB-present finding; any fixes).
 - [ ] **5.4** Update README Full Features + cut a release with Credits.
 
 ---
+
+## 6b. Device-test log
+
+- **2026-06-20 ~10:31 — BOTH host renderers device-confirmed (OpenGL + Vulkan), DOOMBLADE.**
+  Log `/sdcard/Download/bionicfg_fgtest_opengl.txt` (19 MB) tagged
+  `FGTEST: ===== PHASE A: OpenGL host renderer + Frame Gen (button UI) =====`.
+  - Under the **OpenGL host renderer** the bionic-fg layer ran fully clean: multiple
+    `SwapchainState ready: 1280x720 … provisionedOutputs=3 shaders=embedded`; **mult=2 and mult=4
+    both built** (`FramegenContext ready … mult=N`, context-rebuild on multiplier change);
+    **flow_scale hot-reloads live** with no rebuild (swept 0.20 → 0.60 → 0.70 → 0.78 → 1.00);
+    `framegen=off` toggle works; **zero `BionicFG` errors / no native crash** from the layer
+    (only unrelated `ti.diagservices` Pocket-FIT firmware tombstones).
+  - Screenshot `Screenshot_20260620-103153.png` = DOOMBLADE menu, HUD **DXVK 30.3 base → 125
+    output ≈ 4.0×**; **CPU now reads 77.0°C** → the in-game HUD `CPU=0.0°C` bug is **fixed on
+    device** (the `discoverCpuThermalPaths()` change works).
+  - Screenshot `Screenshot_20260620-102037.png` = in-game GRAPHICS drawer rendering correctly:
+    FG selector Off / 2× (active) / 3× / 4× + Flow Scale slider 0.60 + SGSR / HDR / Toggle Fullscreen.
+  - **Vulkan host renderer** also works when set (already proven in run 6 + Phase 3/4 confirms; the
+    HUD "Vulkan DXVK" badge is the DXVK→Vulkan translation tag, independent of the GL-vs-Vulkan
+    compositor path).
+  - Build still uses the proven `.so` md5 `23f5bfda` (no fps-limiter pacer — that remains deferred
+    to a new `.so` build).
 
 ## 7. Credits & giving back
 - README credit to **xXJSONDeruloXx** (bionic-fg) is Phase 0.3, locked in before any wiring.
