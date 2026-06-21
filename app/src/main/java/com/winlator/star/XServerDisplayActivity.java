@@ -380,7 +380,10 @@ public class XServerDisplayActivity extends AppCompatActivity {
                 // lsfg-vk: rewrite its conf.toml — the fork layer watches the file mtime and reloads
                 // live (swapchain recreate). Passthrough = multiplier 1 (layer treats <=1 as off).
                 File dll = new File(getFilesDir(), "lsfg-vk/Lossless.dll");
-                writeLsfgConfig(fgOn ? Math.max(2, mult) : 1, flow, dll.getAbsolutePath());
+                // mult is already 0 when the in-game toggle is Off (or FG disabled). lsfg-vk treats
+                // multiplier <= 1 as passthrough, so map anything below 2 to 1 — NOT max(2,mult),
+                // which would force 2x on Off.
+                writeLsfgConfig(mult >= 2 ? mult : 1, flow, dll.getAbsolutePath());
                 if (fgOn) container.setFrameGenMultiplier(mult);
                 container.setFrameGenFlowScale(flow);
                 container.saveData();
