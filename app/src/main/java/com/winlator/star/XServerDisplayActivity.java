@@ -375,6 +375,17 @@ public class XServerDisplayActivity extends AppCompatActivity {
             boolean fgOn   = s.getFrameGenEnabled().getValue();
             int   mult     = fgOn ? s.getFrameGenMultiplier().getValue() : 0;
             float flow     = s.getFrameGenFlowScale().getValue();
+            // Route the single in-game multiplier/flow control to whichever engine this container runs.
+            if (container.isLsfgEngine()) {
+                // lsfg-vk: rewrite its conf.toml — the fork layer watches the file mtime and reloads
+                // live (swapchain recreate). Passthrough = multiplier 1 (layer treats <=1 as off).
+                File dll = new File(getFilesDir(), "lsfg-vk/Lossless.dll");
+                writeLsfgConfig(fgOn ? Math.max(2, mult) : 1, flow, dll.getAbsolutePath());
+                if (fgOn) container.setFrameGenMultiplier(mult);
+                container.setFrameGenFlowScale(flow);
+                container.saveData();
+                return;
+            }
             boolean limOn  = s.getFpsLimiterEnabled().getValue();
             int   limitVal = s.getFpsLimit().getValue();   // remembered slider value, kept across on/off
             writeBionicFgConfig(mult, flow, limOn, limitVal);
@@ -520,10 +531,14 @@ public class XServerDisplayActivity extends AppCompatActivity {
         // Sync the in-game frame-generation + fps-limiter controls with this container's saved
         // values. bionicFgActive = is the layer actually loaded this session (FG or limiter on at
         // launch)? Live tuning only works when it is; the drawer uses this to gate/hint the UI.
-        boolean bionicFgActive = container.isFrameGenEnabled() || container.isFpsLimiterEnabled();
+        // "FG layer active this session" = bionic-fg (FG or limiter) OR lsfg-vk selected. The in-game
+        // multiplier/flow controls live-tune whichever engine is running (routed in onBionicFgConfigChange).
+        boolean lsfgOn = container.isLsfgEngine();
+        boolean bionicFgActive = container.isFrameGenEnabled() || container.isFpsLimiterEnabled() || lsfgOn;
         XServerDrawerState.INSTANCE.setBionicFgActive(bionicFgActive);
-        XServerDrawerState.INSTANCE.setFrameGenEnabled(container.isFrameGenEnabled());
-        XServerDrawerState.INSTANCE.setFrameGenMultiplier(container.getFrameGenMultiplier());
+        XServerDrawerState.INSTANCE.setFrameGenEnabled(container.isFrameGenEnabled() || lsfgOn);
+        XServerDrawerState.INSTANCE.setFrameGenMultiplier(
+                lsfgOn ? Math.max(2, container.getFrameGenMultiplier()) : container.getFrameGenMultiplier());
         XServerDrawerState.INSTANCE.setFrameGenFlowScale(container.getFrameGenFlowScale());
         XServerDrawerState.INSTANCE.setFpsLimiterEnabled(container.isFpsLimiterEnabled());
         XServerDrawerState.INSTANCE.setFpsLimit(container.getFpsLimiterValue());

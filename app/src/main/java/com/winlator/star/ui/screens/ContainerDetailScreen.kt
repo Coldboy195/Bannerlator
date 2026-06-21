@@ -538,8 +538,8 @@ private fun TopLevelFields(
         }
 
         // Frame Generation engine: Off / bionic-fg / lsfg-vk (mutually exclusive). lsfg-vk is grayed
-        // out until a Lossless.dll is imported (Settings). The multiplier/flow set here are the
-        // launch defaults; both engines also re-apply them live from the in-game side menu.
+        // out until a Lossless.dll is imported (Settings). This is the ONLY per-container FG control;
+        // the multiplier & flow scale for BOTH engines are tuned live from the in-game side menu.
         val fgEngines = listOf("off", "bionic", "lsfg")
         val fgEngineLabels = listOf(
             stringResource(R.string.frame_generation_off),
@@ -578,26 +578,6 @@ private fun TopLevelFields(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 52.dp, top = 2.dp, bottom = 4.dp)
-            )
-            val lsfgMults = listOf(2, 3, 4)
-            val lsfgMultLabels = listOf("2×", "3×", "4×")
-            val lsfgMultIdx = lsfgMults.indexOf(viewModel.frameGenMultiplier.coerceIn(2, 4)).coerceAtLeast(0)
-            LabeledDropdown(
-                label = stringResource(R.string.frame_generation_multiplier),
-                options = lsfgMultLabels,
-                selectedOption = lsfgMultLabels[lsfgMultIdx],
-                onSelect = { viewModel.frameGenMultiplier = lsfgMults[lsfgMultLabels.indexOf(it)] }
-            )
-            Text(
-                text = "Flow Scale: " + String.format(java.util.Locale.US, "%.2f", viewModel.frameGenFlowScale),
-                style = MaterialTheme.typography.bodySmall
-            )
-            Slider(
-                value = viewModel.frameGenFlowScale,
-                onValueChange = {
-                    viewModel.frameGenFlowScale = (kotlin.math.round(it * 100f) / 100f).coerceIn(0.2f, 1.0f)
-                },
-                valueRange = 0.2f..1.0f
             )
         }
 
