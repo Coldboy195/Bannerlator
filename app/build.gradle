@@ -111,6 +111,11 @@ android {
         release {
             minifyEnabled false
             signingConfig signingConfigs.testkey
+            // Several animated-background frames (ab_*, ab_gear_*, ab_quilt_*) and the
+            // ic_stat_ab_gear notification icon are GIFs with a .png extension. Release
+            // enables PNG crunching by default and AAPT2 rejects them ("file failed to
+            // compile"); debug skips crunching. Disable it so release matches debug.
+            crunchPngs false
         }
     }
 
