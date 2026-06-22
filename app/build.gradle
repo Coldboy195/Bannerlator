@@ -161,6 +161,16 @@ android {
     }
 }
 
+// We vendor a runtime-safe okhttp3.coroutines.executeAsync shim
+// (store/compat/ExecuteAsyncKt.kt) because the real okhttp-coroutines artifact was
+// compiled against newer Kotlin/coroutines and throws NoSuchMethodError on our stack.
+// The real artifact must NOT be on the classpath or it (a) duplicates the shim's class
+// — release dex merge fails with "defined multiple times" — and (b) reintroduces the
+// runtime crash. Exclude it everywhere; the shim is the sole provider, as intended.
+configurations.all {
+    exclude group: 'com.squareup.okhttp3', module: 'okhttp-coroutines'
+}
+
 dependencies {
     implementation platform('androidx.compose:compose-bom:2024.02.00')
     implementation 'androidx.compose.ui:ui'
