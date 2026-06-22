@@ -13,7 +13,8 @@
     },
     {
         "name" : "Game Controller Test",
-        "path" : "C:/Game Controller Test/GameConTest.exe"
+        "path" : "C:/Game Controller Test/GameConTest.exe",
+        "workingDir" : "C:/Game Controller Test"
     },
     {
     "name" : "Programs",
