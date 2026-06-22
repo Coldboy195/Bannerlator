@@ -18,12 +18,14 @@ public abstract class MSLink {
     public static final byte SW_SHOWMAXIMIZED = 3;
     public static final byte SW_SHOWMINNOACTIVE = 7;
     private static final int HasLinkTargetIDList = 1<<0;
+    private static final int HasWorkingDir = 1<<4;
     private static final int HasArguments = 1<<5;
     private static final int HasIconLocation = 1<<6;
     private static final int ForceNoLinkInfo = 1<<8;
 
     public static final class Options {
         public String targetPath;
+        public String workingDir;
         public String cmdArgs;
         public String iconLocation;
         public int iconIndex;
@@ -93,6 +95,10 @@ public abstract class MSLink {
         byte[] LinkCLSID = convertCLSIDtoDATA("00021401-0000-0000-c000-000000000046");
 
         int linkFlags = HasLinkTargetIDList | ForceNoLinkInfo;
+        if (options.workingDir != null && !options.workingDir.isEmpty()) {
+            options.workingDir = options.workingDir.replaceAll("/+", "\\\\").replaceAll("\\\\+$", "");
+            linkFlags |= HasWorkingDir;
+        }
         if (options.cmdArgs != null && !options.cmdArgs.isEmpty()) linkFlags |= HasArguments;
         if (options.iconLocation != null && !options.iconLocation.isEmpty()) linkFlags |= HasIconLocation;
 
@@ -148,7 +154,9 @@ public abstract class MSLink {
 
         byte[] TerminalID = new byte[]{0x00, 0x00};
 
+        // StringData order per MS-SHLLINK 2.4: NAME, RELATIVE_PATH, WORKING_DIR, ARGUMENTS, ICON_LOCATION.
         byte[] StringData = new byte[0];
+        if ((linkFlags & HasWorkingDir) != 0) StringData = ArrayUtils.concat(StringData, stringSizePaddedToByteArray(options.workingDir));
         if ((linkFlags & HasArguments) != 0) StringData = ArrayUtils.concat(StringData, stringSizePaddedToByteArray(options.cmdArgs));
         if ((linkFlags & HasIconLocation) != 0) StringData = ArrayUtils.concat(StringData, stringSizePaddedToByteArray(options.iconLocation));
 

@@ -33,6 +33,7 @@ public abstract class WineStartMenuCreator {
             File outputFile = new File(currentDir, item.getString("name")+".lnk");
             MSLink.Options options = new MSLink.Options();
             options.targetPath = item.getString("path");
+            if (item.has("workingDir")) options.workingDir = item.getString("workingDir");
             options.cmdArgs = item.optString("cmdArgs");
             options.iconLocation = item.optString("iconLocation", options.targetPath);
             options.iconIndex = item.optInt("iconIndex", 0);
