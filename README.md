@@ -57,7 +57,8 @@
 
 ## 🆕 What's New in 1.5
 
-- **Optimized release builds.** Every build now ships as an **optimized release build** instead of a debug build. Debug Compose runs many times slower than release, so the previous builds felt sluggish; the Jetpack Compose UI is now noticeably smoother. Builds are still AOSP-testkey signed, so updates install over previous installs without an uninstall.
+- **Optimized release builds.** Every build now ships as an **optimized release build** instead of a debug build. This was implemented to reduce the user-interface lag that some users had noticed; the Jetpack Compose UI is now noticeably smoother. Builds are still AOSP-testkey signed, so updates install over previous installs without an uninstall.
+  - **⚠️ Updating over 1.4?** You must **reinstall imageFS** after updating — open the app's **Settings**, scroll to the **bottom**, and tap **Reinstall imageFS**.
 - **GOG store sign-in fixed.** The GOG store login no longer shows a blank white screen — the OAuth login now completes correctly so you can sign in and access your GOG library.
 - **New bundled Start-menu utilities** in fresh containers — **AIO Graphics Test** and **Game Controller Test** — alongside the bundled **Winlator File Manager (WFM)**, with `.lnk` working-directory ("Start in") support so folder-locked apps launch correctly.
 - **WFM drive icons fixed.** The bundled Winlator File Manager now shows the correct **"Local Disk"** icon for drives instead of a generic document icon.
