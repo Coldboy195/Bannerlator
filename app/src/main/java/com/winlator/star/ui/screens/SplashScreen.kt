@@ -161,7 +161,7 @@ fun SplashScreen(
             Spacer(Modifier.height(12.dp))
 
             Text(
-                text = "V 1.3",
+                text = "V 1.4",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFFAAAAAA),
