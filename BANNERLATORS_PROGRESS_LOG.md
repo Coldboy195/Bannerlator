@@ -275,4 +275,16 @@ HUD label, and the in-game live-tune routing. Shortcut now constructed BEFORE th
 overrides resolve. **Read-only by design** — never written back, because the in-game FG/FPS toggle
 calls `container.saveData()`; mutating the container at launch would leak a per-game value into the
 container and break "follow container." Multiplier/flow stay live-tuned in-game + persisted on the
-container, unchanged. NEXT: CI build → device-test → merge to main.
+container, unchanged. CI build `28030816792` triggered. NEXT: device-test → merge to main.
+
+**Advanced Vulkan settings — investigated, DEFERRED, on hold until current build is tested.** Confirmed
+the renderer side is fully functional (`VulkanRenderer`: `setVkPresentMode`/`setSwapRB`/`setFilterMode`
+call native; `nativeMode` drives the AHB direct-scanout path; `setInitialNativeMode` is the launch
+entry point) — so the fix is real wiring, not stubs. Both ends healthy; only the two middle links are
+broken: (1) container `VulkanSettingsDialog` discards `onConfirm` + uses `getDefaultVulkanConfig()` as
+initial; (2) launch reads native/presentMode/filter/swapRB out of `graphicsDriverConfig` via comma-split
+`KeyValueSet` while the string is semicolon-separated → always defaults. The container's dedicated
+`renderer*` fields (saved/loaded but never read at launch) are the natural source of truth. Fix plan:
+wire dialog→fields + read fields at launch → `vkRenderer.setX`, bypassing the broken config path, then
+add per-game extras. Held as its own branch because it touches the device-sensitive present path and
+needs a focused device test, not a ride-along with the safe toggles.
