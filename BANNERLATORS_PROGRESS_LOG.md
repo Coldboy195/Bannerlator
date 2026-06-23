@@ -192,3 +192,26 @@ Repo: https://github.com/The412Banner/bannerlators (public). Created 2026-06-18.
 - README also gained (earlier this session) "What's New in 1.5" + previously-undocumented
   "🛒 Built-in GOG store" + "🧰 Bundled Start-menu utilities" sections; WFM credited to
   StevenMXZ Winlator-Ludashi 3.1 hotfix in both README Credits and the release Credits block.
+
+## 2026-06-22 (PM) — GitHub issue triage (repo now public)
+- **#4 "Vulkan render" — CLOSED (already fixed).** Two Vulkan-host-renderer-only bugs, both
+  already shipped in 1.4 + 1.5: (a) input-control profiles empty on Vulkan → `a77a76f` (moved
+  input-controls init before the GL-only early return in `initInlineTabStates`); (b) Task
+  Manager empty on Vulkan → `6a69195` (render-independent main-Handler poll; the Compose
+  LaunchedEffect{delay()} loop stalls on the Vulkan present path). Filed on 1.3. Replied +
+  closed.
+- **#2 container crash (S24 Ultra / One UI 8.5 / Android 16) — OPEN.** No such device to repro.
+  Replied: update to 1.5 + enable per-container "OneUI / HyperOS Fix" (ContainerDetail →
+  Graphics Driver, `fdDevFeatures`) + asked for adb logcat. Left open.
+- **#3 frame gen not working on HyperOS 3 — OPEN.** No device to repro. Replied: try the
+  "OneUI / HyperOS Fix" option; asked which engine/version/symptom. Left open.
+- **#5 on-screen dpad/stick FREEZE on multi-touch — FIXED.** Root cause in
+  `widget/InputControlsView.java onTouchEvent`: ACTION_DOWN/UP key on the real
+  `event.getPointerId(actionIndex)` but ACTION_MOVE passed the pointer INDEX `i` to
+  `ControlElement.handleTouchMove`; that method only tracks D_PAD/STICK/TRACKPAD while
+  `pointerId == currentPointerId`, so a 2nd finger shifting the index↔id mapping froze the
+  stick/dpad at its last value until release. Fix = `int pid = event.getPointerId(i);` + pass
+  `pid` (commit `fba6080`, branch `fix/onscreen-controls-multitouch-freeze`). Verified
+  byte-for-byte against Ludashi 3.1 (`StevenMXZ/Winlator-Ludashi@ludashi-3.1`). Universal fix
+  (all flavors). ⚠️ CRLF file → byte-exact python edit. Replied on #5. Test build
+  `build-artifacts.yml` run 27983069051. NEXT: device-test multitouch → merge → next release.
