@@ -198,8 +198,10 @@ fun ContainerDetailScreen(
             initialConfig = viewModel.dxWrapperConfig,
             onConfirm = { newConfig -> viewModel.dxWrapperConfig = newConfig; showDxvkConfig = false },
             onDismiss = { showDxvkConfig = false },
-            onDownloadDxvk = { if (isVegasWrapper) showVegasDownloadSheet = true else showDxvkDownloadSheet = true },
-            onDownloadVkd3d = { showVkd3dDownloadSheet = true }
+            // Close the config dialog first — the download sheet is a ModalBottomSheet (activity
+            // window) and would otherwise render BEHIND this AlertDialog. It reopens on sheet dismiss.
+            onDownloadDxvk = { showDxvkConfig = false; if (isVegasWrapper) showVegasDownloadSheet = true else showDxvkDownloadSheet = true },
+            onDownloadVkd3d = { showDxvkConfig = false; showVkd3dDownloadSheet = true }
         )
     }
     if (showWineD3DConfig) {
@@ -271,20 +273,20 @@ fun ContainerDetailScreen(
     if (showDxvkDownloadSheet) {
         ContentDownloadSheet(
             contentType = com.winlator.star.contents.ContentProfile.ContentType.CONTENT_TYPE_DXVK,
-            onDismiss = { showDxvkDownloadSheet = false },
+            onDismiss = { showDxvkDownloadSheet = false; showDxvkConfig = true },
             onContentChanged = { dxvkRefreshKey++ }
         )
     }
     if (showVkd3dDownloadSheet) {
         ContentDownloadSheet(
             contentType = com.winlator.star.contents.ContentProfile.ContentType.CONTENT_TYPE_VKD3D,
-            onDismiss = { showVkd3dDownloadSheet = false },
+            onDismiss = { showVkd3dDownloadSheet = false; showDxvkConfig = true },
             onContentChanged = { dxvkRefreshKey++ }
         )
     }
     if (showVegasDownloadSheet) {
         VegasDownloadSheet(
-            onDismiss = { showVegasDownloadSheet = false },
+            onDismiss = { showVegasDownloadSheet = false; showDxvkConfig = true },
             onContentChanged = { dxvkRefreshKey++ }
         )
     }
