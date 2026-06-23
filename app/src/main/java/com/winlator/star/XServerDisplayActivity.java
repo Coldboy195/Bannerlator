@@ -565,8 +565,10 @@ public class XServerDisplayActivity extends AppCompatActivity {
         boolean bionicFgActive = fgEnabled || fpsLimOn || lsfgOn;
         XServerDrawerState.INSTANCE.setBionicFgActive(bionicFgActive);
         XServerDrawerState.INSTANCE.setFrameGenEnabled(fgEnabled || lsfgOn);
-        XServerDrawerState.INSTANCE.setFrameGenMultiplier(
-                lsfgOn ? Math.max(2, container.getFrameGenMultiplier()) : container.getFrameGenMultiplier());
+        // Frame gen ALWAYS starts OFF in-game (multiplier 0) regardless of the container setting.
+        // The layer is still loaded at launch (below), so the user can opt in per session from the
+        // FG drawer (live hot-reload). The persisted container multiplier is left untouched.
+        XServerDrawerState.INSTANCE.setFrameGenMultiplier(0);
         XServerDrawerState.INSTANCE.setFrameGenFlowScale(container.getFrameGenFlowScale());
         XServerDrawerState.INSTANCE.setFrameGenEngine(fgEngine);
         XServerDrawerState.INSTANCE.setFpsLimiterEnabled(fpsLimOn);
@@ -1352,9 +1354,10 @@ public class XServerDisplayActivity extends AppCompatActivity {
                 // Wine /proc/self/exe is the loader, so the real exe name is unusable).
                 File losslessDll = new File(getFilesDir(), "lsfg-vk/Lossless.dll");
                 if (losslessDll.isFile()) {
-                    int mult = container.getFrameGenMultiplier();
-                    if (mult < 2) mult = 2;
-                    writeLsfgConfig(mult, container.getFrameGenFlowScale(), losslessDll.getAbsolutePath());
+                    // Start in passthrough (multiplier 1 = frame gen off). ENABLE_LSFG still loads the
+                    // layer, so the FG drawer can enable it live in-session (the conf.toml mtime watch
+                    // re-applies the user's multiplier without a relaunch). Container value untouched.
+                    writeLsfgConfig(1, container.getFrameGenFlowScale(), losslessDll.getAbsolutePath());
                     File lsfgConf = new File(imageFs.home_path, ".config/lsfg-vk/conf.toml");
                     envVars.put("ENABLE_LSFG", "1");
                     envVars.put("LSFG_CONFIG", lsfgConf.getAbsolutePath());
@@ -1369,8 +1372,11 @@ public class XServerDisplayActivity extends AppCompatActivity {
                 boolean fgOn = resolvedFrameGenEngine().equals("bionic");
                 if (fgOn || limiterOn) {
                     envVars.put("BIONIC_FG_ENABLE", "1");
+                    // Frame gen starts OFF in-game: write multiplier 0 even when the container has it
+                    // enabled. The layer still loads (so the FG drawer can turn it on live), and the
+                    // fps limiter is unaffected — only the startup frame-gen multiplier is forced off.
                     writeBionicFgConfig(
-                            fgOn ? container.getFrameGenMultiplier() : 0,
+                            0,
                             container.getFrameGenFlowScale(),
                             limiterOn,
                             container.getFpsLimiterValue());

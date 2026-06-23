@@ -288,3 +288,27 @@ initial; (2) launch reads native/presentMode/filter/swapRB out of `graphicsDrive
 wire dialog→fields + read fields at launch → `vkRenderer.setX`, bypassing the broken config path, then
 add per-game extras. Held as its own branch because it touches the device-sensitive present path and
 needs a focused device test, not a ride-along with the safe toggles.
+
+## 2026-06-23 — Frame gen starts OFF in-game every launch (branch `feat/framegen-default-off`)
+**Request:** Even when frame generation is enabled in a container's settings, it must default to
+**OFF in-game on every container launch**. The user opts in per session via the in-game FG drawer.
+Container-settings FG = "available/configured", NOT "auto-on at launch."
+
+**Key constraint:** a Vulkan frame-gen layer only loads at PROCESS START — it can't be injected
+mid-session (`onBionicFgConfigChange` bails "needs a relaunch" if the layer wasn't loaded). So
+"off but enable-able in-game" = **load the layer, start it in passthrough/off**, NOT "don't load it."
+
+**4 edits (off main `2705f1b`):**
+1. `XServerDisplayActivity` drawer seed (~568) — seed `setFrameGenMultiplier(0)` always (was
+   `lsfgOn ? max(2,saved) : saved`). KEEP `setFrameGenEnabled`/`bionicFgActive` true-when-configured
+   so the Off/2×/3×/4× multiplier row still renders and is live.
+2. `XServerDisplayActivity` bionic-fg launch conf (~1372) — `writeBionicFgConfig` initial multiplier
+   `0` always (was `fgOn ? saved : 0`). KEEP load cond `(fgOn || limiterOn)`. **FPS limiter UNTOUCHED.**
+3. `XServerDisplayActivity` lsfg-vk launch conf (~1357) — `writeLsfgConfig(1, …)` passthrough (was
+   `max(2, saved)`). KEEP `ENABLE_LSFG=1` so the layer still loads.
+4. `XServerDrawer.kt` badge (~525) — `isRunning = layerActive && engine != "off" && initFgMult > 0`
+   (was no mult check → green dot would lie while FG idle). Now tracks live as the user toggles.
+
+**Persisted container values stay intact** — only the runtime seed + initial conf change. Net: an
+FG-enabled container launches with the layer loaded but OFF (badge grey, row shows Off) → user taps
+2×/3×/4× → live-on, no relaunch. ⏳ NEXT: CI build → device-test → merge to main (1.6).

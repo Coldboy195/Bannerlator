@@ -522,7 +522,10 @@ private fun FrameGenSection(state: XServerDrawerState) {
         "bionic" -> "bionic-fg"
         else     -> "Off"
     }
-    val isRunning = layerActive && engine != "off"
+    // Green dot = engine actually multiplying frames right now. Frame gen starts at multiplier 0
+    // (Off) every launch even when the container has an engine selected, so gate on initFgMult too
+    // — otherwise the dot would show green while FG is idle. Tracks live as the user toggles Off/2×/…
+    val isRunning = layerActive && engine != "off" && initFgMult > 0
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
