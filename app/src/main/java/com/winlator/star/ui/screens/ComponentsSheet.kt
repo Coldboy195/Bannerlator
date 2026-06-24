@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.winlator.star.components.Component
 import com.winlator.star.components.ComponentCatalog
+import com.winlator.star.components.ComponentExecInstaller
 import com.winlator.star.components.ComponentInstaller
 import com.winlator.star.container.Container
 import com.winlator.star.ui.findActivity
@@ -46,6 +47,26 @@ fun ComponentsSheet(container: Container, onDismiss: () -> Unit) {
     var progress by remember { mutableStateOf(0f) }
     var installed by remember { mutableStateOf<Set<String>>(emptySet()) }
     var message by remember { mutableStateOf<String?>(null) }
+    var confirmExec by remember { mutableStateOf<Component?>(null) }
+
+    // Run an installer-based component: download its installer, then launch the container session.
+    fun runExecInstall(c: Component) {
+        installing = c.name; progress = 0f
+        scope.launch {
+            val res = withContext(Dispatchers.IO) {
+                ComponentExecInstaller.startInstall(context, container, c) { f ->
+                    activity?.runOnUiThread { progress = f }
+                }
+            }
+            installing = null
+            when (res) {
+                is ComponentExecInstaller.Result.Launched -> { /* session launched; app continues there */ }
+                is ComponentExecInstaller.Result.Done -> installed = installed + c.name
+                is ComponentExecInstaller.Result.Error ->
+                    message = "Couldn't install ${c.name}: ${res.message}"
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         val list = withContext(Dispatchers.IO) { ComponentCatalog.load() }
@@ -60,6 +81,26 @@ fun ComponentsSheet(container: Container, onDismiss: () -> Unit) {
             containerColor = Color(0xFF2A2A2A),
             text = { Text(m, color = Color(0xFFCCCCCC)) },
             confirmButton = { TextButton(onClick = { message = null }) { Text("OK") } },
+        )
+    }
+
+    confirmExec?.let { c ->
+        AlertDialog(
+            onDismissRequest = { confirmExec = null },
+            containerColor = Color(0xFF2A2A2A),
+            title = { Text("Run ${c.name} installer", color = Color(0xFFEEEEEE)) },
+            text = {
+                Text(
+                    "This installs ${c.name} by running its installer inside the container. " +
+                        "The container will open and run the installer — when it finishes, close it and " +
+                        "you'll be prompted to complete the install.",
+                    color = Color(0xFFCCCCCC),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { val comp = c; confirmExec = null; runExecInstall(comp) }) { Text("Continue") }
+            },
+            dismissButton = { TextButton(onClick = { confirmExec = null }) { Text("Cancel") } },
         )
     }
 
@@ -103,16 +144,20 @@ fun ComponentsSheet(container: Container, onDismiss: () -> Unit) {
                                     progress = if (installing == c.name) progress else null,
                                     enabled = installing == null,
                                     onInstall = {
-                                        installing = c.name; progress = 0f
-                                        scope.launch {
-                                            val err = withContext(Dispatchers.IO) {
-                                                ComponentInstaller.install(context, container, c) { f ->
-                                                    activity?.runOnUiThread { progress = f }
+                                        if (ComponentExecInstaller.isExecComponent(c)) {
+                                            confirmExec = c
+                                        } else {
+                                            installing = c.name; progress = 0f
+                                            scope.launch {
+                                                val err = withContext(Dispatchers.IO) {
+                                                    ComponentInstaller.install(context, container, c) { f ->
+                                                        activity?.runOnUiThread { progress = f }
+                                                    }
                                                 }
+                                                installing = null
+                                                if (err == null) installed = installed + c.name
+                                                else message = "Couldn't install ${c.name}: $err"
                                             }
-                                            installing = null
-                                            if (err == null) installed = installed + c.name
-                                            else message = "Couldn't install ${c.name}: $err"
                                         }
                                     },
                                 )
@@ -140,7 +185,9 @@ private fun ComponentRow(
 ) {
     val cs = MaterialTheme.colorScheme
     val installedBlue = Color(0xFF4FC3F7)
-    val reason = ComponentInstaller.blockedReason(c)
+    // Installer-based components are gated by the exec engine; the rest by the file-drop installer.
+    val reason = if (ComponentExecInstaller.isExecComponent(c)) ComponentExecInstaller.execBlockedReason(c)
+                 else ComponentInstaller.blockedReason(c)
     val installable = reason == null
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {

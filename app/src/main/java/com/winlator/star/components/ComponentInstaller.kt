@@ -59,7 +59,11 @@ object ComponentInstaller {
         }
     }
 
-    private fun runStep(step: ComponentStep, tmp: File, system32: File, syswow64: File, userReg: File) {
+    /**
+     * Apply a single file-drop step. Shared with [ComponentExecInstaller] so installer-based
+     * components reuse the exact same download/extract/copy/registry logic for their non-exec steps.
+     */
+    internal fun runStep(step: ComponentStep, tmp: File, system32: File, syswow64: File, userReg: File) {
         when (step.action) {
             "download_archive", "archive_extract" -> {
                 val url = step.str("url")

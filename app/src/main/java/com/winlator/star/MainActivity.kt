@@ -190,6 +190,9 @@ class MainActivity : AppCompatActivity() {
                         onLaunchStore = { screen -> launchStore(screen) },
                     )
 
+                    // Resume a mid-flight component installer (Phase 3b) after the app restarts.
+                    com.winlator.star.ui.screens.ComponentInstallResume()
+
                     if (isInstalling) {
                         SplashScreen(
                             progress = installProgress,
