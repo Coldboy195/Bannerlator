@@ -84,6 +84,37 @@ public abstract class ImageFsInstaller {
         }
     }
 
+    // Stages the full ffmpeg-8 shared libs (libav*/libsw* .so.62/.60/...) into imagefs usr/lib so
+    // winedmo (the GE video-rework decode path) resolves its libavcodec.so.62 / libavformat.so.62
+    // deps. The stock imagefs only ships ffmpeg 7.1 (.61/.59); winedmo links the 8.x sonames.
+    // Idempotent via a versioned stamp file so existing installs pick it up on next launch without
+    // an imagefs re-extract. Soname symlinks are made here (the extractor doesn't carry them, same
+    // as the libSDL2 symlink above).
+    public static void installFFmpeg8(Context context, ImageFs imageFs) {
+        try {
+            File libDir = imageFs.getLibDir();
+            File stamp = new File(libDir, ".ffmpeg8-8.0-full-1");
+            if (stamp.isFile()) return;
+            boolean ok = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "ffmpeg8.tzst", libDir);
+            if (!ok) { Log.e("ImageFsInstaller", "ffmpeg-8 extract failed"); return; }
+            symlinkLib(libDir, "libavcodec.so.62.11.100", "libavcodec.so.62");
+            symlinkLib(libDir, "libavformat.so.62.3.100", "libavformat.so.62");
+            symlinkLib(libDir, "libavutil.so.60.8.100",  "libavutil.so.60");
+            symlinkLib(libDir, "libswscale.so.9.1.100",  "libswscale.so.9");
+            symlinkLib(libDir, "libswresample.so.6.1.100", "libswresample.so.6");
+            symlinkLib(libDir, "libavfilter.so.11.4.100", "libavfilter.so.11");
+            symlinkLib(libDir, "libavdevice.so.62.1.100", "libavdevice.so.62");
+            stamp.createNewFile();
+        } catch (Exception e) {
+            Log.e("ImageFsInstaller", "Failed to stage ffmpeg-8", e);
+        }
+    }
+
+    private static void symlinkLib(File libDir, String target, String link) {
+        new File(libDir, link).delete();
+        FileUtils.symlink(target, new File(libDir, link).getAbsolutePath());
+    }
+
     public static void installWineFromAssets(final MainActivity activity) {
         String[] versions = activity.getResources().getStringArray(R.array.wine_entries);
         File rootDir = ImageFs.find(activity).getRootDir();
@@ -134,6 +165,7 @@ public abstract class ImageFsInstaller {
                 resetContainerImgVersions(activity);
                 installBionicFgLayer(activity, imageFs);
                 installLsfgVkLayer(activity, imageFs);
+                installFFmpeg8(activity, imageFs);
             }
             else AppUtils.showToast(activity, R.string.unable_to_install_system_files);
 
@@ -149,6 +181,7 @@ public abstract class ImageFsInstaller {
         else {
             installBionicFgLayer(activity, imageFs);
             installLsfgVkLayer(activity, imageFs);
+            installFFmpeg8(activity, imageFs);
         }
     }
 
@@ -188,6 +221,7 @@ public abstract class ImageFsInstaller {
                 resetContainerImgVersions(activity);
                 installBionicFgLayer(activity, imageFs);
                 installLsfgVkLayer(activity, imageFs);
+                installFFmpeg8(activity, imageFs);
             } else {
                 AppUtils.showToast(activity, R.string.unable_to_install_system_files);
             }
