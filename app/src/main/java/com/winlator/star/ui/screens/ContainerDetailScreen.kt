@@ -1709,17 +1709,14 @@ internal fun FpsCounterConfigDialog(
     }
 
     val cfg = remember(initialConfig) { parseConfig(initialConfig) }
-    val modeOptions = remember { listOf("Vertical", "Horizontal") }
-    var selectedMode by remember {
-        mutableStateOf(
-            if (cfg.getOrDefault("hudMode", "vertical") == "horizontal") "Horizontal" else "Vertical"
-        )
-    }
+    // Orientation (vertical/horizontal) is no longer chosen here — it is toggled live by tapping
+    // the HUD in-game. Preserve whatever orientation is currently stored.
+    val hudMode = remember { cfg.getOrDefault("hudMode", "vertical") }
     var hudScale by remember { mutableStateOf(cfg.getOrDefault("hudScale", "100").toIntOrNull() ?: 100) }
     var hudTransparency by remember { mutableStateOf(cfg.getOrDefault("hudTransparency", "0").toIntOrNull() ?: 0) }
 
     fun buildConfig(): String = listOf(
-        "hudMode=${if (selectedMode == "Horizontal") "horizontal" else "vertical"}",
+        "hudMode=$hudMode",
         "showFPS=1",
         "showCPULoad=0",
         "showGPULoad=0",
@@ -1735,11 +1732,9 @@ internal fun FpsCounterConfigDialog(
         title = { Text("FPS Counter Settings") },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                LabeledDropdown(
-                    label = "FPS Counter Mode",
-                    options = modeOptions,
-                    selectedOption = selectedMode,
-                    onSelect = { selectedMode = it }
+                Text(
+                    "Tip: tap the HUD in-game to switch between vertical and horizontal layout.",
+                    style = MaterialTheme.typography.bodySmall
                 )
 
                 Spacer(Modifier.height(12.dp))

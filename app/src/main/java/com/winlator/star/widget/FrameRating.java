@@ -8,7 +8,9 @@ import android.os.BatteryManager;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
@@ -57,6 +59,15 @@ public class FrameRating extends FrameLayout implements Runnable {
     private final View rowBatteryVoltage;
 
     private final HashMap<String, ?> graphicsDriverConfig;
+
+    // Drag-to-move + tap-to-toggle-orientation handling.
+    private float lastX = 0, lastY = 0, offsetX = 0, offsetY = 0;
+    private long downTime = 0;
+    private boolean moved = false;
+    private Runnable onTapListener = null;
+
+    /** Invoked on a single tap (not a drag); used to toggle HUD orientation in-game. */
+    public void setOnTapListener(Runnable r) { this.onTapListener = r; }
 
     // Fallback thermal paths (used only if zone auto-discovery finds nothing).
     private static final String[] THERMAL_PATHS = {
@@ -107,6 +118,36 @@ public class FrameRating extends FrameLayout implements Runnable {
         rowLatency = findViewById(R.id.RowLatency);
 
         this.totalRAM = getTotalRAM();
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                lastX = event.getRawX();
+                lastY = event.getRawY();
+                offsetX = getX();
+                offsetY = getY();
+                downTime = event.getEventTime();
+                moved = false;
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                float dx = event.getRawX() - lastX;
+                float dy = event.getRawY() - lastY;
+                int slop = ViewConfiguration.get(context).getScaledTouchSlop();
+                if (Math.abs(dx) > slop || Math.abs(dy) > slop) moved = true;
+                setX(offsetX + dx);
+                setY(offsetY + dy);
+                return true;
+            case MotionEvent.ACTION_UP:
+                if (!moved
+                        && (event.getEventTime() - downTime) <= ViewConfiguration.getLongPressTimeout()
+                        && onTapListener != null) {
+                    onTapListener.run();
+                }
+                return true;
+        }
+        return super.onTouchEvent(event);
     }
 
     public void applyConfig(String configString) {

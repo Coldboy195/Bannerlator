@@ -1675,13 +1675,15 @@ public class XServerDisplayActivity extends AppCompatActivity {
             frameRatingHorizontal.setLayoutParams(lp);
             frameRatingHorizontal.applyConfig(fpsConfigString);
             frameRatingHorizontal.setVisibility(View.GONE);
-            frameRatingHorizontal.setOnClickListener(v -> toggleFpsHudOrientation());
+            // setOnClickListener never fires: the widget overrides onTouchEvent and consumes the
+            // event without performClick(). Use the widget's own tap callback instead.
+            frameRatingHorizontal.setOnTapListener(this::toggleFpsHudOrientation);
             rootView.addView(frameRatingHorizontal);
 
             frameRating = new FrameRating(this, graphicsDriverConfig);
             frameRating.applyConfig(fpsConfigString);
             frameRating.setVisibility(View.GONE);
-            frameRating.setOnClickListener(v -> toggleFpsHudOrientation());
+            frameRating.setOnTapListener(this::toggleFpsHudOrientation);
             rootView.addView(frameRating);
 
             String rendererMode = container != null && "vulkan".equals(resolvedRenderer()) ? "Vulkan" : "OpenGL";

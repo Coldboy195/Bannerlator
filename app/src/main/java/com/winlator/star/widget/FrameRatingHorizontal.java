@@ -10,6 +10,7 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
@@ -59,6 +60,13 @@ public class FrameRatingHorizontal extends FrameLayout implements Runnable {
     private float lastY = 0;
     private float offsetX = 0;
     private float offsetY = 0;
+    // Tap-to-toggle-orientation handling.
+    private long downTime = 0;
+    private boolean moved = false;
+    private Runnable onTapListener = null;
+
+    /** Invoked on a single tap (not a drag); used to toggle HUD orientation in-game. */
+    public void setOnTapListener(Runnable r) { this.onTapListener = r; }
 
     public FrameRatingHorizontal(Context context) {
         this(context, null);
@@ -212,16 +220,25 @@ public class FrameRatingHorizontal extends FrameLayout implements Runnable {
                 lastY = event.getRawY();
                 offsetX = getX();
                 offsetY = getY();
+                downTime = event.getEventTime();
+                moved = false;
                 return true;
-            
+
             case MotionEvent.ACTION_MOVE:
                 float deltaX = event.getRawX() - lastX;
                 float deltaY = event.getRawY() - lastY;
+                int slop = ViewConfiguration.get(context).getScaledTouchSlop();
+                if (Math.abs(deltaX) > slop || Math.abs(deltaY) > slop) moved = true;
                 setX(offsetX + deltaX);
                 setY(offsetY + deltaY);
                 return true;
-            
+
             case MotionEvent.ACTION_UP:
+                if (!moved
+                        && (event.getEventTime() - downTime) <= ViewConfiguration.getLongPressTimeout()
+                        && onTapListener != null) {
+                    onTapListener.run();
+                }
                 return true;
         }
         return super.onTouchEvent(event);
