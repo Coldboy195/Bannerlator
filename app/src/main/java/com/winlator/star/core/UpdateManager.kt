@@ -40,6 +40,9 @@ object UpdateManager {
         "https://github.com/$REPO/releases/latest/download/update.json"
     private fun assetUrl(name: String) =
         "https://github.com/$REPO/releases/latest/download/$name"
+    // Lists ALL releases newest-first, prereleases included (releases/latest skips them).
+    private const val API_RELEASES_URL =
+        "https://api.github.com/repos/$REPO/releases?per_page=30"
 
     // Reuse the FileProvider already declared in the manifest.
     private const val FILE_PROVIDER_AUTHORITY = "com.winlator.star.tileprovider"
@@ -47,6 +50,7 @@ object UpdateManager {
     private const val PREF_NOTIFY = "update_notify_enabled"
     private const val PREF_SKIP = "update_skip_version"
     private const val PREF_LAST_CHECK = "update_last_check"
+    private const val PREF_INCLUDE_PRE = "update_include_prereleases"
     private const val CACHE_NAME = "update_latest.json"
 
     data class UpdateInfo(
@@ -54,8 +58,9 @@ object UpdateManager {
         val versionName: String,
         val notes: String,
         val apkName: String?,
+        /** Resolved download URL for this flavor's APK on the matched release. */
+        val apkUrl: String?,
     ) {
-        val apkUrl: String? get() = apkName?.let { assetUrl(it) }
         /** True when the released build is newer than the installed one. */
         val isNewer: Boolean get() = versionCode > BuildConfig.VERSION_CODE
     }
@@ -71,6 +76,10 @@ object UpdateManager {
     fun skipVersion(ctx: Context, versionCode: Int) =
         prefs(ctx).edit().putInt(PREF_SKIP, versionCode).apply()
 
+    fun isIncludePrereleases(ctx: Context) = prefs(ctx).getBoolean(PREF_INCLUDE_PRE, false)
+    fun setIncludePrereleases(ctx: Context, enabled: Boolean) =
+        prefs(ctx).edit().putBoolean(PREF_INCLUDE_PRE, enabled).apply()
+
     fun lastCheck(ctx: Context) = prefs(ctx).getLong(PREF_LAST_CHECK, 0L)
 
     /** Installed version string for display, e.g. "1.7". */
@@ -84,19 +93,85 @@ object UpdateManager {
      * still works offline.
      */
     fun check(ctx: Context, onResult: (UpdateInfo?) -> Unit) {
+        if (isIncludePrereleases(ctx)) checkViaApi(ctx, onResult)
+        else checkStable(ctx, onResult)
+    }
+
+    /** Stable-only path: releases/latest only ever resolves to a non-prerelease. */
+    private fun checkStable(ctx: Context, onResult: (UpdateInfo?) -> Unit) {
         HttpUtils.download(UPDATE_JSON_URL) { body ->
-            val info = body?.let { parse(it) }
-            if (info != null) {
-                cache(ctx, body)
-                prefs(ctx).edit().putLong(PREF_LAST_CHECK, System.currentTimeMillis()).apply()
-                onResult(info)
-            } else {
-                onResult(loadCached(ctx))
+            val info = body?.let { parseUpdateJson(it) { n -> assetUrl(n) } }
+            finish(ctx, body, info, onResult)
+        }
+    }
+
+    /**
+     * Prerelease-aware path: list all releases (newest first, prereleases
+     * included) via the GitHub API, take the newest one that carries an
+     * update.json asset, and read it. APK URLs come from that release's own
+     * assets, not releases/latest. Falls back to the stable path if the API is
+     * unreachable or no release yet carries update.json.
+     */
+    private fun checkViaApi(ctx: Context, onResult: (UpdateInfo?) -> Unit) {
+        HttpUtils.download(API_RELEASES_URL) { listBody ->
+            val picked = listBody?.let { pickNewestWithUpdateJson(it) }
+            if (picked == null) {
+                checkStable(ctx, onResult)
+                return@download
+            }
+            HttpUtils.download(picked.updateJsonUrl) { body ->
+                val info = body?.let { uj -> parseUpdateJson(uj) { n -> picked.assets[n] } }
+                finish(ctx, body, info, onResult)
             }
         }
     }
 
-    private fun parse(body: String): UpdateInfo? = try {
+    private fun finish(
+        ctx: Context, body: String?, info: UpdateInfo?, onResult: (UpdateInfo?) -> Unit,
+    ) {
+        if (info != null && body != null) {
+            cache(ctx, body)
+            prefs(ctx).edit().putLong(PREF_LAST_CHECK, System.currentTimeMillis()).apply()
+            onResult(info)
+        } else {
+            onResult(loadCached(ctx))
+        }
+    }
+
+    private class PickedRelease(val updateJsonUrl: String, val assets: Map<String, String>)
+
+    /** First non-draft release (newest first) that carries an update.json asset. */
+    private fun pickNewestWithUpdateJson(listBody: String): PickedRelease? = try {
+        val arr = org.json.JSONArray(listBody)
+        var result: PickedRelease? = null
+        var i = 0
+        while (i < arr.length() && result == null) {
+            val rel = arr.getJSONObject(i)
+            if (!rel.optBoolean("draft", false)) {
+                val assetsArr = rel.optJSONArray("assets")
+                if (assetsArr != null) {
+                    val map = HashMap<String, String>()
+                    var updateJsonUrl: String? = null
+                    for (j in 0 until assetsArr.length()) {
+                        val a = assetsArr.getJSONObject(j)
+                        val name = a.optString("name")
+                        val url = a.optString("browser_download_url")
+                        if (name.isNotBlank() && url.isNotBlank()) {
+                            map[name] = url
+                            if (name == "update.json") updateJsonUrl = url
+                        }
+                    }
+                    if (updateJsonUrl != null) result = PickedRelease(updateJsonUrl, map)
+                }
+            }
+            i++
+        }
+        result
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun parseUpdateJson(body: String, resolveApk: (String) -> String?): UpdateInfo? = try {
         val o = JSONObject(body)
         val apkName = o.optJSONObject("apk")
             ?.optString(BuildConfig.APPLICATION_ID, null)
@@ -106,6 +181,7 @@ object UpdateManager {
             versionName = o.optString("versionName", ""),
             notes = o.optString("notes", ""),
             apkName = apkName,
+            apkUrl = apkName?.let(resolveApk),
         )
     } catch (_: Exception) {
         null
@@ -117,7 +193,8 @@ object UpdateManager {
 
     private fun loadCached(ctx: Context): UpdateInfo? = try {
         val f = File(ctx.cacheDir, CACHE_NAME)
-        if (f.isFile) parse(f.readText()) else null
+        // Best-effort offline read; APK download needs network to re-resolve anyway.
+        if (f.isFile) parseUpdateJson(f.readText()) { n -> assetUrl(n) } else null
     } catch (_: Exception) {
         null
     }

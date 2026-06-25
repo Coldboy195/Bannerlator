@@ -16,9 +16,17 @@ on:
         required: true
         default: 'Bannerlator 1.0'
       release_number:
-        description: 'Release number for APK name (e.g. 1.7)'
+        description: 'Release number for APK name (e.g. 1.7, 1.9-pre1)'
         required: true
         default: '1.0'
+      make_prerelease:
+        description: 'Pre-release? (true = beta build, not offered to stable users)'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 permissions:
   contents: write
@@ -220,5 +228,7 @@ jobs:
           app/build/outputs/apk/ludashi/release/Bannerlator-${{ github.event.inputs.release_number }}-ludashi.apk
           app/build/outputs/apk/pubg/release/Bannerlator-${{ github.event.inputs.release_number }}-pubg.apk
           update.json
-        prerelease: false
-        make_latest: true
+        prerelease: ${{ github.event.inputs.make_prerelease == 'true' }}
+        # Only a stable cut becomes "latest"; pre-releases never do, so the
+        # default (toggle-off) updater keeps pointing at the last stable.
+        make_latest: ${{ github.event.inputs.make_prerelease != 'true' }}

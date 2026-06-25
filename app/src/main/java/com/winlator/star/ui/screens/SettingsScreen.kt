@@ -115,6 +115,7 @@ fun SettingsScreen(onSaved: () -> Unit = {}) {
     var updateInfo by remember { mutableStateOf<UpdateManager.UpdateInfo?>(null) }
     var checkingUpdate by remember { mutableStateOf(false) }
     var notifyUpdates by remember { mutableStateOf(UpdateManager.isNotifyEnabled(context)) }
+    var includePrereleases by remember { mutableStateOf(UpdateManager.isIncludePrereleases(context)) }
     LaunchedEffect(Unit) {
         UpdateManager.check(context) { info -> activity?.runOnUiThread { updateInfo = info } }
     }
@@ -443,6 +444,18 @@ fun SettingsScreen(onSaved: () -> Unit = {}) {
                     UpdateManager.setNotifyEnabled(context, it)
                 })
                 Text("Notify me about updates", color = Color(0xFFCCCCCC), fontSize = 14.sp)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = includePrereleases, onCheckedChange = {
+                    includePrereleases = it
+                    UpdateManager.setIncludePrereleases(context, it)
+                    // Re-check immediately so the readout reflects the new setting.
+                    checkingUpdate = true
+                    UpdateManager.check(context) { info ->
+                        activity?.runOnUiThread { updateInfo = info; checkingUpdate = false }
+                    }
+                })
+                Text("Include pre-releases (beta builds)", color = Color(0xFFCCCCCC), fontSize = 14.sp)
             }
         }
 
