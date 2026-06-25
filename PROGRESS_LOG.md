@@ -26,24 +26,26 @@ accurate progress bars.
   install-dir timestamp (`relativeTime()`); reworked the downloads UI — **animated rounded progress bar**
   in a card with an **indeterminate "Preparing…" phase** and a separate %/bytes line; new
   `DetailActionButton` (48dp, rounded, disabled dimming) + `DetailInfoRow`. Pure UI/Compose.
-- **Chunk 2 DONE — real playtime hours** (`SteamOwnedGames.kt` + detail wiring, `ee8f725`): fetches
-  owned-games via JavaSteam unified messages (`SteamUnifiedMessages` → `Player` rpc → `GetOwnedGames`,
-  blocking `.get()`), in-process cache; detail page shows a **"Playtime"** row + overrides "Last played"
-  with the real `rtime_last_played` when logged in (install-mtime fallback otherwise). No DB columns
-  (in-memory). Relies on `-Xskip-metadata-version-check`. Combined CI `28142766784`.
+- **Chunk 2 — real playtime hours: ABANDONED + REVERTED** (`ee85bf9`). Tried owned-games via JavaSteam
+  unified messages (`SteamOwnedGames.kt`) but the API fought compilation (needed protobuf-java for the
+  proto `GeneratedMessage` supertype; then `Player.getOwnedGames` return type is neither `Future` nor
+  `CompletionStage` — `.get()`/`.toCompletableFuture()`/`.result`/`.body` unresolved). User chose to drop
+  playtime recording; timestamp-based "Last played" (chunk 1) stays. Removed the file + Playtime row +
+  protobuf-java dep.
 - **TODO (remaining follow-up):** **bigger sheets** — DLC/depot manager, beta branch picker,
   cloud-save export/import/sync, add-to-home-screen (port from ref4ik `SteamLibrarySheets.kt` /
   `SteamGameActions.kt`).
 
-**RESUME SNAPSHOT (2026-06-24, for crash recovery):** main tip `626c51b`-area (+ progress-log commits).
-Two stacked feature branches, NONE merged, all device-test-pending:
+**RESUME SNAPSHOT (2026-06-24, for crash recovery):** Two stacked feature branches, NONE merged, all
+device-test-pending:
   • `feat/steam-pluvia-launch` (off main) — Pluvia Phase 1 coldclient launch, steps 1-4, commits
     `ff13265`/`1c6839d`/`f0b6106`/`73834d6`, all compile-green. Drawer "Steam" = unchanged store; adds
     emulation launch.
-  • `feat/steam-detail-revamp` (stacked on the launch branch) — tip `ee8f725` — detail revamp chunks 1-2.
-NEXT WHEN RESUMING: (1) confirm CI `28142766784` green; (2) device-test on the test device — Steam
+  • `feat/steam-detail-revamp` (stacked on the launch branch) — tip `ee85bf9` — detail revamp chunk 1
+    only (chunk-2 playtime reverted). CI `28143904501`.
+NEXT WHEN RESUMING: (1) confirm CI `28143904501` green; (2) device-test on the test device — Steam
 download → add a steam_api game with "Steam emulation" → confirm Goldberg launch; detail page shows
-dev/genres/metacritic/playtime/last-played + fluid progress; (3) optionally build the bigger sheets;
+dev/genres/metacritic/last-played + fluid progress; (3) optionally build the bigger sheets;
 (4) then decide merge order (launch branch → main first, then rebase revamp → main). ref4ik clone at
 `/home/claude-user/scratchpad/ref4ik`. Full design = `docs/STEAM_PLUVIA_PORT_PLAN.md`.
 
