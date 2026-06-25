@@ -1729,21 +1729,58 @@ internal fun FpsCounterConfigDialog(
     }
 
     val cfg = remember(initialConfig) { parseConfig(initialConfig) }
-    // Orientation (vertical/horizontal) is no longer chosen here — it is toggled live by tapping
-    // the HUD in-game. Preserve whatever orientation is currently stored.
+    fun bool(k: String, fallbackKey: String, d: String) =
+        cfg.getOrDefault(k, cfg.getOrDefault(fallbackKey, d)) == "1"
+
+    // Orientation (vertical/horizontal) is toggled live by tapping the HUD in-game; preserve it.
     val hudMode = remember { cfg.getOrDefault("hudMode", "vertical") }
-    var hudScale by remember { mutableStateOf(cfg.getOrDefault("hudScale", "100").toIntOrNull() ?: 100) }
+    var gameHub by remember { mutableStateOf(cfg.getOrDefault("hudStyle", "classic") == "gamehub") }
+
+    // Unified metric toggles (emitted under both classic + gamehub key names so either HUD honors them).
+    var showFPS      by remember { mutableStateOf(bool("showFPS", "showFPS", "1")) }
+    var showGraph    by remember { mutableStateOf(bool("showFPSGraph", "showFPSGraph", "0")) }
+    var showCPU      by remember { mutableStateOf(bool("showCPUUsage", "showCPULoad", "1")) }
+    var showGPU      by remember { mutableStateOf(bool("showGPULoad", "showGPULoad", "1")) }
+    var showRAM      by remember { mutableStateOf(bool("showRAM", "showRAM", "1")) }
+    var showPower    by remember { mutableStateOf(bool("showPower", "showPower", "1")) }
+    var showTemp     by remember { mutableStateOf(bool("showTemp", "showBatteryTemp", "1")) }
+    var showEngine   by remember { mutableStateOf(bool("showEngine", "showRenderer", "1")) }
+    var showGpuModel by remember { mutableStateOf(bool("showGpuModel", "showGpuModel", "0")) }
+    var dualBattery  by remember { mutableStateOf(bool("hudDualBattery", "hudDualBattery", "0")) }
+
+    var hudScale by remember { mutableStateOf(cfg.getOrDefault("hudScale", "92").toIntOrNull() ?: 92) }
+    var hudOpacity by remember { mutableStateOf(cfg.getOrDefault("hudOpacity", "80").toIntOrNull() ?: 80) }
     var hudTransparency by remember { mutableStateOf(cfg.getOrDefault("hudTransparency", "0").toIntOrNull() ?: 0) }
 
+    val skins = listOf("classic", "neon", "mono")
+    val colors = listOf("soft", "mid", "vivid")
+    val outlines = listOf("off", "soft", "strong")
+    var skin by remember { mutableStateOf(cfg.getOrDefault("hudSkin", "classic")) }
+    var color by remember { mutableStateOf(cfg.getOrDefault("hudColor", "mid")) }
+    var outline by remember { mutableStateOf(cfg.getOrDefault("hudOutline", "soft")) }
+
+    fun i(v: Boolean) = if (v) "1" else "0"
     fun buildConfig(): String = listOf(
+        "hudStyle=${if (gameHub) "gamehub" else "classic"}",
         "hudMode=$hudMode",
-        "showFPS=1",
-        "showCPULoad=0",
-        "showGPULoad=0",
-        "showRAM=0",
-        "showRenderer=0",
-        "showBatteryTemp=0",
+        "showFPS=${i(showFPS)}",
+        "showFPSGraph=${i(showGraph)}",
+        "showCPUUsage=${i(showCPU)}",
+        "showCPULoad=${i(showCPU)}",
+        "showGPULoad=${i(showGPU)}",
+        "showRAM=${i(showRAM)}",
+        "showPower=${i(showPower)}",
+        "showTemp=${i(showTemp)}",
+        "showBatteryTemp=${i(showTemp)}",
+        "showEngine=${i(showEngine)}",
+        "showRenderer=${i(showEngine)}",
+        "showGpuModel=${i(showGpuModel)}",
+        "hudDualBattery=${i(dualBattery)}",
+        "hudSkin=$skin",
+        "hudColor=$color",
+        "hudOutline=$outline",
         "hudScale=$hudScale",
+        "hudOpacity=$hudOpacity",
         "hudTransparency=$hudTransparency"
     ).joinToString(",")
 
@@ -1751,28 +1788,70 @@ internal fun FpsCounterConfigDialog(
         onDismissRequest = onDismiss,
         title = { Text("FPS Counter Settings") },
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.7f).dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = gameHub, onCheckedChange = { gameHub = it })
+                    Spacer(Modifier.width(8.dp))
+                    Text("GameHub-style HUD", modifier = Modifier.weight(1f))
+                }
                 Text(
-                    "Tip: tap the HUD in-game to switch between vertical and horizontal layout.",
+                    if (gameHub) "Rich overlay: skins, colored fields, live FPS graph."
+                    else "Classic Bannerlator overlay.",
                     style = MaterialTheme.typography.bodySmall
                 )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Tip: tap the HUD in-game to switch vertical/horizontal layout.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(12.dp))
+
+                HudToggleRow("Frame rate (FPS)", showFPS) { showFPS = it }
+                if (gameHub) HudToggleRow("FPS graph", showGraph) { showGraph = it }
+                HudToggleRow("CPU", showCPU) { showCPU = it }
+                HudToggleRow("GPU", showGPU) { showGPU = it }
+                HudToggleRow("Memory (RAM)", showRAM) { showRAM = it }
+                HudToggleRow("Power", showPower) { showPower = it }
+                HudToggleRow("Temperature", showTemp) { showTemp = it }
+                HudToggleRow("Engine", showEngine) { showEngine = it }
+                if (gameHub) {
+                    HudToggleRow("GPU model", showGpuModel) { showGpuModel = it }
+                    HudToggleRow("Dual-battery power fix", dualBattery) { dualBattery = it }
+                }
 
                 Spacer(Modifier.height(12.dp))
                 Text("HUD Scale: $hudScale%", style = MaterialTheme.typography.bodySmall)
                 Slider(
                     value = hudScale.toFloat(),
                     onValueChange = { hudScale = it.toInt().coerceAtLeast(50) },
-                    valueRange = 50f..150f,
-                    steps = 99
+                    valueRange = 50f..150f, steps = 99
                 )
-                Spacer(Modifier.height(4.dp))
-                Text("HUD Transparency: $hudTransparency", style = MaterialTheme.typography.bodySmall)
-                Slider(
-                    value = hudTransparency.toFloat(),
-                    onValueChange = { hudTransparency = it.toInt() },
-                    valueRange = 0f..50f,
-                    steps = 49
-                )
+
+                if (gameHub) {
+                    Spacer(Modifier.height(4.dp))
+                    Text("HUD Opacity: $hudOpacity%", style = MaterialTheme.typography.bodySmall)
+                    Slider(
+                        value = hudOpacity.toFloat(),
+                        onValueChange = { hudOpacity = it.toInt() },
+                        valueRange = 0f..100f, steps = 99
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    HudThreeStop("HUD skin", listOf("Classic", "Neon", "Mono"), skins.indexOf(skin)) { skin = skins[it] }
+                    HudThreeStop("HUD color", listOf("Soft", "Mid", "Vivid"), colors.indexOf(color)) { color = colors[it] }
+                    HudThreeStop("HUD outline", listOf("Off", "Soft", "Strong"), outlines.indexOf(outline)) { outline = outlines[it] }
+                } else {
+                    Spacer(Modifier.height(4.dp))
+                    Text("HUD Transparency: $hudTransparency", style = MaterialTheme.typography.bodySmall)
+                    Slider(
+                        value = hudTransparency.toFloat(),
+                        onValueChange = { hudTransparency = it.toInt() },
+                        valueRange = 0f..50f, steps = 49
+                    )
+                }
             }
         },
         confirmButton = {
@@ -1782,6 +1861,31 @@ internal fun FpsCounterConfigDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) } }
     )
+}
+
+@Composable
+private fun HudToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Spacer(Modifier.width(8.dp))
+        Text(label, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun HudThreeStop(label: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Text(label, style = MaterialTheme.typography.bodySmall)
+    Row {
+        options.forEachIndexed { idx, opt ->
+            FilterChip(
+                selected = selected == idx,
+                onClick = { onSelect(idx) },
+                label = { Text(opt) },
+                modifier = Modifier.padding(end = 6.dp)
+            )
+        }
+    }
+    Spacer(Modifier.height(4.dp))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
