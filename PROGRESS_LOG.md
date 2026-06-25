@@ -15,6 +15,94 @@ gh workflow run "Any branch compilation." --repo The412Banner/star-compose --ref
 
 ---
 
+## 2026-06-25 (latest) — 1.8 STABLE cut ✅ (updater picker fix + in-app OTA proven on a real stable)
+
+Closed out the 1.8 cycle. One code blocker remained from the updater work, then cut stable.
+
+**Picker correctness fix (`f1729a7`, branch `fix/updater-picker-sort`, CI `28200393133` ✅ → ff-merged to
+main, branch deleted).** GitHub's list-releases API does **not** return pure newest-first — it pins the
+`make_latest` release to the top, then lists the rest by date. Confirmed live: the API returned
+`[1.7 (latest, published 01:46), 1.8-pre2 (published 20:30), 1.8-pre1, 1.6…]`. `UpdateManager.pickNewestWithUpdateJson`
+took the **first** array element carrying `update.json`, which worked only because 1.7 had none (skipped).
+Once 1.8 stable carried `update.json` + `make_latest`, it would have **shadowed a newer 1.9-preN** in the
+prerelease channel. Fix = parse all releases into a list, `sortWith(compareByDescending { optString("published_at","") })`
+(ISO-8601 sorts lexicographically = chronologically), then walk for the first with `update.json`.
+
+**1.8 stable cut (user explicit go-ahead — required by the hard rule).** Bumped `versionCode 27→28` +
+`versionName "1.8"` (`376e5fd`), dispatched `release.yml` with `release_tag=1.8 release_number=1.8
+make_prerelease=false` → workflow auto-sets `prerelease:false` + `make_latest:true`. Release run
+`28201699881` ✅. Verified: **Bannerlator 1.8 = Latest**, 1.7 demoted; assets = 3 flavor APKs +
+`update.json`; **`releases/latest/download/update.json` now resolves to vc28/1.8** (stable updater
+baseline live). Release body rewritten to match the 1.7 layout (logo / tagline / What's-New sections /
+downloads table / credits / collapsible changelog) — intentionally **no reinstall-imageFS warning** since
+1.8 is app-side only (HUD + updater), nothing changed in imageFS.
+
+**✅ In-app OTA proven on a real stable cut:** a device running **1.8-pre2 (vc27)** auto-updated in-app to
+**1.8 stable (vc28)** — the full updater loop (detect → download correct flavor → install) confirmed on a
+genuine stable transition, not just pre→pre. Main tip `376e5fd`.
+
+**1.8 ships:** GameHub-style perf HUD (2nd selectable overlay + live swap) · in-app updater (auto-install
++ optional prerelease channel) · setup-screen branding fix · updater picker fix. Next cycle → 1.9-preN
+prereleases until an explicit stable call.
+
+---
+
+## 2026-06-25 (later) — In-app updater + prerelease channel (✅ device-proven, shipping via 1.8-preN)
+
+Built a GitHub-releases-based **in-app update system** (modelled on the BannersComponentInjector /
+BannerHub updater). Merged to main; being device-tested via prereleases.
+
+**Core — `core/UpdateManager.kt`:** fetches `releases/latest/download/update.json`, compares
+`BuildConfig.VERSION_CODE` (the integer is the source of truth, NOT the tag string), caches to
+`cacheDir` (offline-safe), picks the flavor APK by `BuildConfig.APPLICATION_ID`, downloads via the
+existing `HttpUtils` (reuses `DownloadProgressDialog`) and installs through the existing
+`com.winlator.star.tileprovider` FileProvider. Install-permission guarded (`REQUEST_INSTALL_PACKAGES`,
+Android 8+). **UI lives in 3 places:** Settings → new "Updates" section (readout, Check, Download &
+install, Notify toggle); About dialog (latest-version line + "Update now"); app-wide amber home banner
+(honours notify + skip-version). Manifest got `REQUEST_INSTALL_PACKAGES` + an `external-cache-path`;
+`release.yml` generates + attaches `update.json` per release.
+
+**"Include pre-releases" toggle (Settings, default OFF):** OFF = stable path (`releases/latest` only ever
+resolves to a non-prerelease). ON = `checkViaApi` → GitHub releases API (`?per_page=30`, prereleases
+included) → newest release carrying an `update.json` → its own asset URLs. **Gotcha: api.github.com 403s
+without a `User-Agent`** → added one to `HttpUtils`' string fetch. `release.yml` gained a
+`make_prerelease` input (sets `prerelease` + inverts `make_latest`); `update.json` now attaches to EVERY
+release so the toggle has data.
+
+**Versioning rule established (hard rule):** stables = plain numeric tag (`1.8`,`1.9`),
+`prerelease:false` + `make_latest:true` — the ONLY thing the default updater offers. Everything between
+stables = `X.Y-preN` (`1.9-pre1`,`pre2`…), `prerelease:true`, no make_latest, until explicitly promoted.
+`versionCode` ticks up on EVERY build.
+
+**Branding fix (`fix/setup-splash-branding`, merged):** the shared `DownloadProgressDialog` (first-launch
+imagefs setup + HttpUtils downloads incl. the update download) hardcoded **"Star Bionic"** + **"Bionic
+V1.1"** — caught from a device screenshot (pulled via root bridge). Title → `@string/app_name`
+(per-flavor), version → `BuildConfig.VERSION_NAME` (dynamic, new `@+id/TVVersion`). Also cleaned the
+leftover "Star Bionic" in the unused `about_dialog.xml`.
+
+**Build log:**
+
+| Step | Commit / Tag | CI Run | Result |
+|---|---|---|---|
+| Updater core (Settings/About/banner) | `41d7c06` | `28193511129` | ✅ green |
+| Include-prereleases toggle + UA fix | `19b7e36` | `28195066124` | ✅ green |
+| Merge + bump → 1.8-pre1 (vc26) | `ca87892` | `28195824422` (release) | ✅ published (prerelease) |
+| Setup-screen branding fix | `b11814c` | `28197124387` | ✅ green |
+| Merge + bump → 1.8-pre2 (vc27) | `2b10f53` | `28197773910` (release) | ✅ published (prerelease) |
+
+**✅ DEVICE-PROVEN:** on the installed vc25 build, toggling Include-prereleases ON surfaced 1.8-pre1, and
+Update downloaded + installed + launched it end-to-end. 1.8-pre2 (vc27) cut to re-test + carry the
+branding fix. Stable 1.7 users untouched throughout (`releases/latest` still 404s for update.json since
+1.7 predates the feature; no pre is make_latest). Main tip `2b10f53`.
+
+**🐛 KNOWN latent bug (NOT yet fixed):** GitHub `/releases` API is not reliably newest-first — it hoists
+the `make_latest` (stable) release to the top. `pickNewestWithUpdateJson` takes the first array element
+with an `update.json`, which works while only prereleases carry it, but once a **stable + a newer
+prerelease coexist**, the older stable would win over the newer beta for toggle-on users. **Fix before
+cutting 1.8 stable: sort releases by `published_at` (fallback `created_at`) DESC before scanning.**
+
+---
+
 ## 2026-06-25 — GameHub HUD: device-test crash fix + full in-game drawer mirror (branch `feat/gamehub-perf-hud`)
 
 Continued the GameHub HUD port from P0–P4 (entry below) into on-device testing. Two follow-ups, neither merged.
