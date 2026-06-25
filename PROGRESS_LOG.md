@@ -17,8 +17,8 @@ gh workflow run "Any branch compilation." --repo The412Banner/star-compose --ref
 
 ## 2026-06-24 (late 2) — Steam download fixes + Pluvia/GameNative Steam-store recon & plan
 
-**Steam download bug (branch `fix/steam-download-login-guard`, NOT yet merged; compile CI
-`28139917719` ✅ green).** User's Steam game downloads failed "Download failed: Unknown error".
+**Steam download bug (✅ MERGED to main `63e4366`/`9f6197e`; compile CI `28139917719` ✅ green;
+device-test pending).** User's Steam game downloads failed "Download failed: Unknown error".
 Two distinct bugs found from the on-device `steam_debug.txt`:
 1. *Login race* — `runInstall` started while `connected=true` but `loggedIn=false` (Steam CM
    connections cycle; re-logon after reconnect is async, license cache masked it). Manifest job
