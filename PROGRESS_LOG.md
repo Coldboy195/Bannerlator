@@ -15,7 +15,45 @@ gh workflow run "Any branch compilation." --repo The412Banner/star-compose --ref
 
 ---
 
-## 2026-06-25 (latest) — DXVK 3.0 Vulkan 1.4 option ✅ merged + SurfaceFlinger renderer Phase-0 spike 🚧
+## 2026-06-25 (latest) — SurfaceFlinger (ASR) renderer Phase 1 ✅ WORKING + device-proven (branch `feat/surfaceflinger-renderer`)
+
+Took the SurfaceFlinger renderer from "selectable skeleton" (Phase 0) to a working scene compositor
+that renders real D3D games fullscreen via Android SurfaceFlinger — no GL/Vulkan compositor. Ported
+from GameNative PR #1582 (André Vito, on StevenMX's scanout work), adapted to Bannerlator's X-server API.
+
+**Build-up:** scene engine (`ASurfaceRenderer` implements `WindowManager.OnWindowModificationListener`
++ `Pointer.OnPointerMotionListener`; `updateScene` walks the window tree under XLock → one SurfaceControl
+layer per window via `nativeRegisterWindowSC`/`nativeUpdateWindow` in a begin/apply transaction; frames
+pushed via `nativeSetWindowBuffer`) + additive `PresentExtension` ASR branch (routes the game AHB to the
+SC; Vulkan/GL paths untouched).
+
+**The hard debugging (device, Adreno 750, GTA IV + AIO Graphics Test, DXVK 3.0 + VK 1.4):** game ran
+(audio) but showed a small top-left window. On-device logging (filtered logcat to a file — wine logs flood
+the buffer) proved the whole Java chain worked (8000+ `ASR_Present`/pushes with valid AHBs, SC registered,
+visible). Two stacked root causes, both fixed:
+- **`Drawable.DRAWABLE_ASR_MODE`** (`98861c8`): port GameNative's flag so every Drawable is backed by a
+  composer-compatible `GPUImage` AHB at construction (`data = AHB mapped memory`) — required for
+  SurfaceFlinger to scan out. Wired `setAsrMode(true/false)` per renderer in `XServerView.initRenderer`.
+- **Geometry** (`bf292bf`): `computeWindowRect` used the normalized GL `sceneScaleX` (~1.0), pinning the
+  game at native size in the corner. Map through `viewTransformation.aspect` (surface-px-per-X-px, e.g.
+  1.5×) + letterbox offset instead → fills the surface.
+- **HUD** (`bf292bf` + `c4f6e5f`): wired `ASurfaceRenderer.setHudFrameTick` (FPS was blank — the tick was
+  Vulkan-only) + fixed the renderer label (`XServerDisplayActivity:1710` binary vulkan?:OpenGL → +SF case).
+
+**✅ DEVICE-PROVEN** (build `28213017959`, screenshot-every-5s/60s): GTA IV menu renders FULLSCREEN under
+ASR, HUD reads `SurfaceFlinger | DXVK | … FPS: 398 2.5ms`, stable. **✅ GL/Vulkan regression pass:** all
+three renderers render GTA fullscreen with correct labels/FPS (Vulkan 300, OpenGL 295, SurfaceFlinger 398)
+— additive edits don't disturb GL/Vulkan, global ASR flag clears correctly. **✅ Debug logging stripped**
+(`bb64f2b`, clean build `28213752314`).
+
+Branch tip `bb64f2b`, carries the merged Vulkan 1.4 commit. **NOT merged** — awaiting call: merge to main vs
+Phase 2 polish first (CPU desktop chrome compositing, cursor, fps-limit tearing — none block game render).
+Process note: always `git push` BEFORE dispatching a CI build (a build was once cut from the pre-push commit;
+verify via `gh run view <id> --json headSha`). 1.9-pre prerelease when cut.
+
+---
+
+## 2026-06-25 — DXVK 3.0 Vulkan 1.4 option ✅ merged + SurfaceFlinger renderer Phase-0 spike 🚧
 
 **Context:** DXVK 3.0 shipped (all 4 `.wcp` flavors on The412Banner/Nightlies). DXVK 3.0 **hard-requires
 Vulkan 1.4** (mandatory bump from 2.x's 1.3 — verified vs the release notes). The Turnip/Wrapper Driver
