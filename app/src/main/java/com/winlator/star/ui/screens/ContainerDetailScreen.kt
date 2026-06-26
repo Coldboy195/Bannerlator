@@ -502,12 +502,17 @@ private fun TopLevelFields(
         Spacer(Modifier.height(8.dp))
 
         // Renderer
+        var showSfWarning by remember { mutableStateOf(false) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             LabeledDropdown(
                 label = stringResource(R.string.renderer),
                 options = viewModel.rendererEntries,
                 selectedOption = viewModel.selectedRenderer,
-                onSelect = { viewModel.selectedRenderer = it },
+                onSelect = {
+                    // SurfaceFlinger is experimental and can reboot some devices — require opt-in.
+                    if (it == "SurfaceFlinger" && viewModel.selectedRenderer != "SurfaceFlinger") showSfWarning = true
+                    else viewModel.selectedRenderer = it
+                },
                 modifier = Modifier.weight(1f)
             )
             if (viewModel.selectedRenderer == "Vulkan") {
@@ -515,6 +520,12 @@ private fun TopLevelFields(
                     Icon(Icons.Default.Settings, contentDescription = null)
                 }
             }
+        }
+        if (showSfWarning) {
+            SurfaceFlingerWarningDialog(
+                onConfirm = { viewModel.selectedRenderer = "SurfaceFlinger"; showSfWarning = false },
+                onDismiss = { showSfWarning = false }
+            )
         }
         Spacer(Modifier.height(8.dp))
 

@@ -1244,12 +1244,23 @@ private fun ShortcutSettingsDialogScreen(shortcut: Shortcut, onDismiss: () -> Un
                     ) { Text("DX Wrapper Config") }
 
                     // Renderer (host) — per-game override of the container's OpenGL/Vulkan choice.
+                    var showSfWarning by remember { mutableStateOf(false) }
                     LabeledDropdown(
                         label = stringResource(R.string.renderer),
                         options = listOf("OpenGL", "Vulkan", "SurfaceFlinger"),
                         selectedOption = selectedRenderer,
-                        onSelect = { selectedRenderer = it }
+                        onSelect = {
+                            // SurfaceFlinger is experimental and can reboot some devices — require opt-in.
+                            if (it == "SurfaceFlinger" && selectedRenderer != "SurfaceFlinger") showSfWarning = true
+                            else selectedRenderer = it
+                        }
                     )
+                    if (showSfWarning) {
+                        SurfaceFlingerWarningDialog(
+                            onConfirm = { selectedRenderer = "SurfaceFlinger"; showSfWarning = false },
+                            onDismiss = { showSfWarning = false }
+                        )
+                    }
 
                     // Frame Generation engine — per-game override (lsfg grayed without Lossless.dll).
                     run {
