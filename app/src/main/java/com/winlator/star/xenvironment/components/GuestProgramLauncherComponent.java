@@ -356,6 +356,21 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
             ld_preload += fakeinputDest.getAbsolutePath();
         }
 
+        File[] jpegCandidates = new File[] {
+            new File("/system/lib64/libjpeg.so"),
+            new File("/system_ext/lib64/libjpeg.so"),
+        };
+        
+        ld_preload = appendFirstExistingPreload(ld_preload, jpegCandidates);
+
+        File[] cryptoCandidates = new File[] {
+            new File("/system/lib64/libcrypto.so"),
+            new File("/system_ext/lib64/libcrypto.so"),
+            new File(imageFs.getLibDir(), "libcrypto.so.3"),
+        };
+        
+        ld_preload = appendFirstExistingPreload(ld_preload, cryptoCandidates);
+        
         File devInputDir = new File(imageFs.getRootDir(), "dev/input");
         devInputDir.mkdirs();
         File event0 = new File(devInputDir, "event0");
