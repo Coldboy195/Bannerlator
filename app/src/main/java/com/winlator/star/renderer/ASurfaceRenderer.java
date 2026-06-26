@@ -43,6 +43,7 @@ public class ASurfaceRenderer implements HostRenderer,
         Pointer.OnPointerMotionListener {
 
     private static final String TAG = "ASurfaceRenderer";
+    private static final boolean DEBUG = true; // Phase-1 bring-up diagnostics
 
     static { System.loadLibrary("asurface_renderer"); }
 
@@ -172,6 +173,10 @@ public class ASurfaceRenderer implements HostRenderer,
                         xServer.windowManager.rootWindow.getX(),
                         xServer.windowManager.rootWindow.getY());
             }
+            if (DEBUG) Log.d(TAG, "updateScene: " + renderListSize + " mapped windows, surfaceWH="
+                    + surfaceWidth + "x" + surfaceHeight + " viewTx off=" + viewTransformation.viewOffsetX
+                    + "," + viewTransformation.viewOffsetY + " wh=" + viewTransformation.viewWidth + "x"
+                    + viewTransformation.viewHeight + " scale=" + viewTransformation.sceneScaleX);
             pushRenderList();
         }
     }
@@ -214,6 +219,11 @@ public class ASurfaceRenderer implements HostRenderer,
 
             WindowSurface ws = getOrCreateWindowSurface(contentId, rw.content.width, rw.content.height, debugName);
             if (ws == null) continue;
+
+            if (DEBUG) Log.d(TAG, "scene i=" + i + " id=" + contentId + " cls=" + debugName
+                    + " cw=" + rw.content.width + "x" + rw.content.height
+                    + " desk=" + rw.isDesktopWindow + " deskChild=" + rw.isDesktopChild
+                    + " dst=" + dst.toShortString() + " geomOk=" + geometryOk);
 
             boolean needsUpdate = !ws.visible || ws.zOrder != i
                     || !dst.equals(ws.lastDst) || !src.equals(ws.lastSrc);
@@ -363,15 +373,15 @@ public class ASurfaceRenderer implements HostRenderer,
     }
 
     private void pushWindowBuffer(int windowId, Drawable drawable) {
-        if (!windowSurfaces.containsKey(windowId)) return; // SC not created yet; updateScene will
+        boolean hasSC = windowSurfaces.containsKey(windowId);
+        if (!hasSC) { if (DEBUG) Log.d(TAG, "push id=" + windowId + " SKIP no-SC"); return; }
         synchronized (drawable.renderLock) {
-            if (drawable.getTexture() instanceof GPUImage) {
-                GPUImage g = (GPUImage) drawable.getTexture();
-                long ahbPtr = g.getHardwareBufferPtr();
-                if (ahbPtr != 0) {
-                    nativeSetWindowBuffer(windowId, ahbPtr, -1, windowId, 0);
-                    tickHud();
-                }
+            boolean isGpu = drawable.getTexture() instanceof GPUImage;
+            long ahbPtr = isGpu ? ((GPUImage) drawable.getTexture()).getHardwareBufferPtr() : 0;
+            if (DEBUG) Log.d(TAG, "push id=" + windowId + " gpu=" + isGpu + " ahb=" + ahbPtr);
+            if (ahbPtr != 0) {
+                nativeSetWindowBuffer(windowId, ahbPtr, -1, windowId, 0);
+                tickHud();
             }
         }
     }
