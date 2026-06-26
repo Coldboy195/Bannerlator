@@ -94,6 +94,24 @@ static char *get_library_name(JNIEnv *env, jobject context, const char *driver_n
     return library_name;
 }
 
+static void preload_vendor_icd_deps() {
+  // Keep OEM Vulkan ICD dependencies globally visible before the loader pulls
+  // them in, or DXVK can misreport missing VK_KHR_surface.
+  const char *jpeg_candidates[] = {
+      "/system/lib64/libjpeg.so",
+      "/system_ext/lib64/libjpeg.so",
+      "libjpeg.so",
+      NULL,
+  };
+  preload_first_existing(jpeg_candidates);
+
+  const char *crypto_candidates[] = {
+      "libcrypto.so",
+      NULL,
+  };
+  preload_first_existing(crypto_candidates);
+}
+
 static void init_original_vulkan() {
     vulkan_handle = dlopen("/system/lib64/libvulkan.so", RTLD_LOCAL | RTLD_NOW);
 }
